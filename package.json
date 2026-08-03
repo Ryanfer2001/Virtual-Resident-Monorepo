@@ -1,0 +1,21 @@
+{
+  "name": "noszona-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "dev:web": "pnpm --filter @noszona/web dev",
+    "dev:api": "pnpm --filter @noszona/api dev",
+    "build:web": "pnpm --filter @noszona/web build",
+    "start:api": "pnpm --filter @noszona/api start"
+  },
+  "devDependencies": {
+    "turbo": "latest"
+  }
+}
+
