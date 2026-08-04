@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const app = require("./app");
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 3002;
 
 const servidor = app.listen(PORT, () => {
   console.log("========================================");

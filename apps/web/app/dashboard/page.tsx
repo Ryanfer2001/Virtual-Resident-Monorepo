@@ -79,13 +79,7 @@ export default function DashboardPage() {
     };
   }, [residente]);
 
-  // Exibição 3D automática do cartão: roda continuamente nos eixos X
-  // e Y (o eixo Z fica sempre a 0deg). rotateY segue cos(theta) e
-  // rotateX segue sin(theta), o que traça uma pequena elipse no
-  // sentido anti-horário — só alguns graus, nunca uma volta completa
-  // nem o cartão ao contrário. No hover, a amplitude é reduzida a 0,
-  // o que faz o cartão convergir sempre para rotateX(0) rotateY(0),
-  // seja qual for a fase em que a rotação estava.
+
   useEffect(() => {
     const el = cartaoRef.current;
 
@@ -184,10 +178,7 @@ export default function DashboardPage() {
               {residente.nome?.split(" ")[0]}
             </h1>
 
-            <p>
-              Consulta a tua conta, saldo, pacote,
-              cartão e serviços NOSZONA.
-            </p>
+           
           </div>
 
 

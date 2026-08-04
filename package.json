@@ -15,7 +15,6 @@
     "start:api": "pnpm --filter @noszona/api start"
   },
   "devDependencies": {
-    "turbo": "latest"
+    "turbo": "^2.10.8"
   }
 }
-

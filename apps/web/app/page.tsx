@@ -48,7 +48,7 @@ const subPlanosPorPacote: Record<PacoteId, { titulo: string; planos: SubPlano[] 
   },
 };
 
-   export default function NoszonaSmart() {
+   export default function VirtualResident() {
   const [view, setView] = useState<'home' | 'login' | 'registo' | 'dashboard' |'pacote'| 'recuperar'>('home');
   const [user, setUser] = useState<any>(null);
   const [qrTime, setQrTime] = useState(30);
@@ -73,22 +73,7 @@ const subPlanosPorPacote: Record<PacoteId, { titulo: string; planos: SubPlano[] 
     setView('registo');
   }
 
-  // QR Countdown
-  useEffect(() => {
-    if (view !== 'dashboard' || !user) return;
 
-    const interval = setInterval(() => {
-      setQrTime((prev) => {
-        if (prev <= 1) {
-          // Simula renovação do QR
-          return 30;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [view, user]);
 
 
   return (
