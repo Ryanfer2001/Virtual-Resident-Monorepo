@@ -16,6 +16,8 @@ import type {
   Residente,
 } from "@/types/residente";
 
+import "./dashboard.css";
+
 export default function DashboardPage() {
   const router = useRouter();
 

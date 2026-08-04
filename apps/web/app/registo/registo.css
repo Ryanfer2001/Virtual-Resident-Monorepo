@@ -1,0 +1,210 @@
+/* =====================================================
+   REGISTO NEXT.JS
+===================================================== */
+
+.registo-page {
+  min-height: calc(100vh - 76px);
+  padding: 55px 20px 80px;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(0, 151, 216, 0.14),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(55, 178, 77, 0.12),
+      transparent 32%
+    ),
+    #f5f8fb;
+}
+
+.registo-card {
+  width: min(860px, 100%);
+  margin: 0 auto;
+  padding: 42px;
+  border-radius: 26px;
+  background: #ffffff;
+  box-shadow: 0 28px 80px rgba(7, 42, 68, 0.13);
+}
+
+.registo-heading {
+  margin-bottom: 32px;
+}
+
+.registo-heading h1 {
+  margin: 8px 0 12px;
+  color: #0b2c46;
+  font-size: clamp(32px, 5vw, 46px);
+}
+
+.registo-heading p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.registo-form {
+  display: grid;
+  gap: 24px;
+}
+
+.registo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 19px;
+}
+
+.registo-grid label {
+  display: grid;
+  gap: 8px;
+  color: #1b354e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.registo-grid input,
+.registo-grid select {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid #d7e0e8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fbfcfd;
+  color: #122c43;
+  outline: none;
+}
+
+.registo-grid input:focus,
+.registo-grid select:focus {
+  border-color: #168bd2;
+  box-shadow: 0 0 0 4px rgba(22, 139, 210, 0.11);
+}
+
+.campo-completo {
+  grid-column: 1 / -1;
+}
+
+.termos-registo {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.termos-registo input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #168bd2;
+}
+
+.pagamento-seguro-box {
+  padding: 18px;
+  border: 1px solid #bde5c5;
+  border-radius: 14px;
+  background: #f0fbf3;
+  color: #185b2c;
+}
+
+.pagamento-seguro-box strong {
+  display: block;
+  margin-bottom: 7px;
+}
+
+.pagamento-seguro-box p {
+  margin: 0;
+  color: #367147;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.mensagens-registo {
+  display: grid;
+  gap: 10px;
+}
+
+.form-message {
+  padding: 13px 15px;
+  border-radius: 11px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.form-error {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #b42335;
+}
+
+.form-success {
+  border: 1px solid #abefc6;
+  background: #ecfdf3;
+  color: #067647;
+}
+
+.registo-submit {
+  width: 100%;
+  min-height: 54px;
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(
+    135deg,
+    #0875c1,
+    #00a3dc
+  );
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.registo-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 13px 28px rgba(8, 117, 193, 0.24);
+}
+
+.registo-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.registo-login-link {
+  margin: 24px 0 0;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.registo-login-link a {
+  color: #0875c1;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 800px) {
+  .registo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .campo-completo {
+    grid-column: auto;
+  }
+
+  .registo-card {
+    padding: 30px 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  .registo-page {
+    padding: 30px 14px 60px;
+  }
+}

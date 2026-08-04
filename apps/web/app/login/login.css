@@ -1,0 +1,109 @@
+/* =====================================================
+   LOGIN NEXT.JS
+===================================================== */
+
+.auth-page {
+  min-height: calc(100vh - 76px);
+  padding: 64px 20px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(0, 151, 216, 0.14),
+      transparent 38%
+    ),
+    #f5f8fb;
+}
+
+.auth-card {
+  width: min(520px, 100%);
+  padding: 38px;
+  border-radius: 25px;
+  background: #ffffff;
+  box-shadow: 0 28px 80px rgba(7, 42, 68, 0.13);
+}
+
+.auth-heading h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(30px, 5vw, 43px);
+  color: #0b2c46;
+}
+
+.auth-heading p {
+  margin: 0 0 30px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.auth-form {
+  display: grid;
+  gap: 19px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 8px;
+  color: #1b354e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.auth-form input {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid #d7e0e8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fbfcfd;
+  color: #122c43;
+  outline: none;
+}
+
+.auth-form input:focus {
+  border-color: #168bd2;
+  box-shadow: 0 0 0 4px rgba(22, 139, 210, 0.11);
+}
+
+.auth-links {
+  margin-top: 24px;
+  display: grid;
+  gap: 12px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.auth-links a {
+  color: #0875c1;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.btn-login-centralizado {
+  width: 220px;
+  margin: 10px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.form-message {
+  padding: 13px 15px;
+  border-radius: 11px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.form-error {
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #b42335;
+}
+
+@media (max-width: 600px) {
+  .auth-card {
+    padding: 28px 21px;
+  }
+}

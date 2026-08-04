@@ -19,6 +19,8 @@ import type {
   RegistoData,
 } from "@/types/residente";
 
+import "./registo.css";
+
 const estadoInicial: RegistoData = {
   nome: "",
   dataNascimento: "",

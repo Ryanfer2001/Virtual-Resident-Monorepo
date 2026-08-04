@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import { fazerLogin } from "@/lib/api";
 import { guardarSessao } from "@/lib/auth";
 import { criarDataUrlImagem } from "@/lib/imagens";
+import "./login.css";
 
 export default function LoginPage() {
   const router = useRouter();
