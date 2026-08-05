@@ -29,7 +29,7 @@ export default function Header({ residente }: HeaderProps) {
       <div className="header-container">
         <Link href="/" className="logo" aria-label="Página inicial">
           <Image
-            src="/img/CVR-dsh .jpg"
+            src="/img/CVR-dash.jpg"
             alt="logo="
             width={380}
             height={80}
