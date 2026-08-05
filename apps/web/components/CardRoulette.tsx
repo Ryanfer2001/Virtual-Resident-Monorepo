@@ -157,12 +157,7 @@ export default function CardRoulette({ onSelect }: CardRouletteProps) {
   }
 
   return (
-    <div
-      className="roulette-container"
-      ref={containerRef}
-      onMouseEnter={() => (pausedRef.current = true)}
-      onMouseLeave={() => (pausedRef.current = false)}
-    >
+    <div className="roulette-container" ref={containerRef}>
       <div
         className="roulette-stage"
         style={{
@@ -188,6 +183,8 @@ export default function CardRoulette({ onSelect }: CardRouletteProps) {
                 pointerEvents: opacity === 0 ? "none" : "auto",
               }}
               onClick={() => handleCardClick(index, card)}
+              onMouseEnter={() => (pausedRef.current = true)}
+              onMouseLeave={() => (pausedRef.current = false)}
               aria-label={`${TIPO_LABEL[card.tipo]} · ${card.plano} · ${card.preco}`}
               aria-current={isFocal}
               tabIndex={opacity === 0 ? -1 : 0}
@@ -209,22 +206,25 @@ export default function CardRoulette({ onSelect }: CardRouletteProps) {
         })}
       </div>
 
-      <button
-        type="button"
-        className="roulette-arrow roulette-arrow--prev"
-        onClick={() => goToIndex(focalIndex - 1)}
-        aria-label="Cartão anterior"
-      >
-        ‹
-      </button>
-      <button
-        type="button"
-        className="roulette-arrow roulette-arrow--next"
-        onClick={() => goToIndex(focalIndex + 1)}
-        aria-label="Próximo cartão"
-      >
-        ›
-      </button>
+      <div className="roulette-arrows">
+        <button
+          type="button"
+          className="roulette-arrow roulette-arrow--prev"
+          onClick={() => goToIndex(focalIndex - 1)}
+          aria-label="Cartão anterior"
+        >
+          
+          ↑
+        </button>
+        <button
+          type="button"
+          className="roulette-arrow roulette-arrow--next"
+          onClick={() => goToIndex(focalIndex + 1)}
+          aria-label="Próximo cartão"
+        >
+          ↓
+        </button>
+      </div>
 
       <div className="roulette-dots">
         {CARDS.map((card, i) => (
