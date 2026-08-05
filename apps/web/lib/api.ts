@@ -4,6 +4,26 @@ import type {
   RegistoResponse,
 } from "@/types/residente";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") || "";
+
+async function interpretarResposta<T>(
+  resposta: Response,
+): Promise<T> {
+  const contentType =
+    resposta.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return (await resposta.json()) as T;
+  }
+
+  const texto = await resposta.text();
+
+  throw new Error(
+    `A API devolveu uma resposta inválida (${resposta.status}). ${texto.slice(0, 200)}`,
+  );
+}
+
 export async function fazerLogin(
   username: string,
   password: string,
@@ -49,7 +69,7 @@ export async function criarResidente(
   dados: RegistoData,
 ): Promise<RegistoResponse> {
   const resposta = await fetch(
-    "/api/residentes/registar",
+    `${API_BASE_URL}/api/residentes/registar`,
     {
       method: "POST",
       headers: {
@@ -62,7 +82,9 @@ export async function criarResidente(
   );
 
   const resultado =
-    (await resposta.json()) as RegistoResponse;
+    await interpretarResposta<RegistoResponse>(
+      resposta,
+    );
 
   if (!resposta.ok) {
     throw new Error(
@@ -81,7 +103,7 @@ export async function solicitarRecuperacaoPassword(
   mensagem?: string;
 }> {
   const resposta = await fetch(
-    "/api/residentes/recuperar-password",
+    `${API_BASE_URL}/api/residentes/recuperar-password`,
     {
       method: "POST",
       headers: {
@@ -95,10 +117,10 @@ export async function solicitarRecuperacaoPassword(
     },
   );
 
-  const dados = (await resposta.json()) as {
+  const dados = await interpretarResposta<{
     sucesso: boolean;
     mensagem?: string;
-  };
+  }>(resposta);
 
   if (!resposta.ok) {
     throw new Error(
