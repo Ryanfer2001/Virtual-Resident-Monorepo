@@ -1,6 +1,6 @@
 
 /* =====================================================
-   NOSZONA Smart — style.css
+    CVR.css
    ===================================================== */
 
 :root {
@@ -353,7 +353,7 @@ header {
 }
 .roulette-card {
   position: absolute;
-  top: 50%; left: 50%;
+  top: 38%; left: 85%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
