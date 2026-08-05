@@ -220,7 +220,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("/img/favicon.jpg");
+  background-image: url("/img/icon.jpg");
   background-size: 110%;
   background-repeat: no-repeat;
   background-position: center;
