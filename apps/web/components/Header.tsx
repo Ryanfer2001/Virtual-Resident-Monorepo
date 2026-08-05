@@ -29,8 +29,8 @@ export default function Header({ residente }: HeaderProps) {
       <div className="header-container">
         <Link href="/" className="logo" aria-label="Página inicial">
           <Image
-            src="/img/CVR-logo-dsh.jpg"
-            alt="NOSZONA Smart"
+            src="/img/CVR-dsh.jpg"
+            alt="logo="
             width={380}
             height={80}
             priority
