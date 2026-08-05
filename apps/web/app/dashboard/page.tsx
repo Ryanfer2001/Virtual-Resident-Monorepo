@@ -32,6 +32,9 @@ export default function DashboardPage() {
   const [qrDataUrl, setQrDataUrl] =
     useState<string | null>(null);
 
+  const [tema, setTema] =
+    useState<"claro" | "escuro">("claro");
+
   useEffect(() => {
     const residenteSalvo =
       obterResidenteGuardado();
@@ -44,6 +47,21 @@ export default function DashboardPage() {
     setResidente(residenteSalvo);
     setCarregando(false);
   }, [router]);
+
+  useEffect(() => {
+    const temaSalvo = localStorage.getItem("nz-dashboard-tema");
+    if (temaSalvo === "claro" || temaSalvo === "escuro") {
+      setTema(temaSalvo);
+    }
+  }, []);
+
+  function alternarTema() {
+    setTema((atual) => {
+      const proximo = atual === "claro" ? "escuro" : "claro";
+      localStorage.setItem("nz-dashboard-tema", proximo);
+      return proximo;
+    });
+  }
 
   // QR code de identidade: regenerado a cada 30s com um novo timestamp,
   // para que o código exibido vá sempre mudando.
@@ -165,10 +183,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <>
+    <div className={`dashboard-shell tema-${tema}`}>
       <Header residente={residente} />
 
       <main className="dashboard-page">
+        {tema === "claro" && (
+          <div className="dashboard-sol" aria-hidden="true" />
+        )}
+
+        <div className="dashboard-content">
         <section className="dashboard-boas-vindas">
           <div>
             <span className="dashboard-eyebrow">
@@ -180,10 +203,17 @@ export default function DashboardPage() {
               {residente.nome?.split(" ")[0]}
             </h1>
 
-           
+
           </div>
 
-
+          <button
+            type="button"
+            className="tema-toggle-btn"
+            onClick={alternarTema}
+            aria-pressed={tema === "escuro"}
+          >
+            {tema === "claro" ? "🌙 Modo noturno" : "☀️ Modo diurno"}
+          </button>
         </section>
 
         <section className="dashboard-resumo">
@@ -354,8 +384,9 @@ export default function DashboardPage() {
             </div>
           </article>
         </section>
+        </div>
       </main>
-    </>
+    </div>
   );
 }
 
