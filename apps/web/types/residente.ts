@@ -67,3 +67,14 @@ export interface RegistoResponse {
   residenteId?: string;
   residente?: Residente;
 }
+
+export interface EnviarFotosPayload {
+  residenteId: string;
+  fotoPerfilBase64?: string;
+  fotoBIBase64: string;
+}
+
+export interface EnviarFotosResponse {
+  sucesso: boolean;
+  mensagem?: string;
+}

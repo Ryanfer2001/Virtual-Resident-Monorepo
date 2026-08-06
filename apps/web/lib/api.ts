@@ -1,4 +1,6 @@
 import type {
+  EnviarFotosPayload,
+  EnviarFotosResponse,
   LoginResponse,
   RegistoData,
   RegistoResponse,
@@ -68,6 +70,40 @@ export async function criarResidente(
     throw new Error(
       resultado.mensagem ||
         `Erro durante o registo (${resposta.status}).`,
+    );
+  }
+
+  return resultado;
+}
+
+export async function enviarFotosResidente(
+  dados: EnviarFotosPayload,
+): Promise<EnviarFotosResponse> {
+  const resposta = await fetch(
+    "/api/residentes/fotos",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        residenteId: dados.residenteId,
+        fotoPerfilBase64:
+          dados.fotoPerfilBase64 || "",
+        fotoBIBase64: dados.fotoBIBase64,
+      }),
+      cache: "no-store",
+    },
+  );
+
+  const resultado =
+    (await resposta.json()) as EnviarFotosResponse;
+
+  if (!resposta.ok) {
+    throw new Error(
+      resultado.mensagem ||
+        `Erro ao enviar as fotos (${resposta.status}).`,
     );
   }
 
