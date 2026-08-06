@@ -364,37 +364,25 @@ export default function DashboardPage() {
                       />
                     </div>
 
-                    <div className="cartao-topo, ">
-
-                      <strong>Cabo Verde Virtual Rresidente</strong>
-
+                    <div className="cartao-topo">
+                      <strong>Cabo Verde Virtual Residente</strong>
                     </div>
 
-                    <div className="cartao-corpo">
-                      <div>
-                        <small>Residente</small>
-                        <strong>
-                          {residente.nome}
-                        </strong>
+                    <div className="cartao-dado cartao-dado-residente">
+                      <small>Residente</small>
+                      <strong>{residente.nome}</strong>
+                    </div>
 
-                      </div>
+                    <div className="cartao-dado cartao-dado-id">
+                      <small>ID</small>
+                      <strong>{residente.id}</strong>
+                    </div>
 
-                      <div>
-                        <br></br>
-                        <small>ID</small>
-                        <strong>
-                          {residente.id}
-                        </strong>
-                      </div>
-                      <br></br>
-
-                      <div>
-                        <small>Pacote</small>
-                        <strong>
-                          {residente.pacote ||
-                            "Sem pacote"}
-                        </strong>
-                      </div>
+                    <div className="cartao-dado cartao-dado-pacote">
+                      <small>Pacote</small>
+                      <strong>
+                        {residente.pacote || "Sem pacote"}
+                      </strong>
                     </div>
 
                   </div>

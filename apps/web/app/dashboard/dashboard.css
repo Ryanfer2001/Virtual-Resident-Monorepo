@@ -153,25 +153,149 @@
   min-width: 0;
 }
 
+/* =====================================================
+   CARTÃO DIGITAL DO RESIDENTE
+===================================================== */
+
+.cartao-residente-digital {
+  width: 100%;
+  max-width: 540px;
+
+  /* Proporção real de cartão: 85,60 mm × 53,98 mm */
+  aspect-ratio: 85.6 / 53.98;
+
+  padding: clamp(16px, 4%, 28px);
+  box-sizing: border-box;
+
+  border-radius: clamp(16px, 4%, 22px);
+
+  background: linear-gradient(
+    110deg,
+    #082a44 0%,
+    #0a3d5f 55%,
+    #075d86 100%
+  );
+
+  color: #ffffff;
+  box-shadow: 0 25px 55px rgba(4, 38, 61, 0.26);
+
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+
+  transform-style: preserve-3d;
+  transform: rotateX(0deg) rotateY(0deg);
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cartao-residente-digital {
+    transform: none !important;
+  }
+}
+
+/* Símbolo de ondas: por trás dos textos e da foto, atravessa o centro,
+   baixa opacidade, sem blur. */
+.cartao-residente-digital::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("/img/icon.jpg");
+  background-repeat: no-repeat;
+  background-size: 82% auto;
+  background-position: center 52%;
+  mix-blend-mode: screen;
+  opacity: 0.32;
+  pointer-events: none;
+  z-index: 0;
+}
+
 .cartao-foto-canto {
   position: absolute;
-  top: clamp(14px, 4%, 22px);
-  right: clamp(14px, 4%, 22px);
-  z-index: 3;
-  width: clamp(44px, 14%, 64px);
+  top: 12%;
+  right: 11%;
+  width: 13%;
+  min-width: 42px;
+  max-width: 72px;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.75);
-  box-shadow: 0 8px 18px rgba(4, 38, 61, 0.35);
-  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.78);
+  background: #d9e5ec;
+  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.22);
+  z-index: 3;
 }
 
 .cartao-foto-residente {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center top;
+}
+
+.cartao-topo {
+  position: absolute;
+  top: 13%;
+  left: 8%;
+  right: 28%;
+  z-index: 2;
+}
+
+.cartao-topo strong {
   display: block;
+  color: #ffffff;
+  font-size: clamp(13px, 3.7vw, 20px);
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cartao-dado {
+  position: absolute;
+  left: 12%;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  max-width: 70%;
+}
+
+.cartao-dado-residente {
+  top: 30%;
+}
+
+.cartao-dado-id {
+  top: 53%;
+}
+
+.cartao-dado-pacote {
+  top: 76%;
+}
+
+.cartao-dado small {
+  color: rgba(210, 228, 241, 0.66);
+  font-size: clamp(10px, 2.8vw, 16px);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.cartao-dado strong {
+  display: block;
+  color: #ffffff;
+  font-size: clamp(12px, 3.6vw, 20px);
+  font-weight: 800;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .cartao-residente-digital {
+    box-shadow: 0 14px 30px rgba(4, 38, 61, 0.22);
+  }
 }
 
 .btn-add-foto-cartao {
@@ -247,107 +371,6 @@
   }
 }
 
-.cartao-residente-digital {
-  width: 100%;
-  max-width: 430px;
-
-  /* Proporção real de cartão: 85,60 mm × 53,98 mm */
-  aspect-ratio: 85.6 / 53.98;
-
-  padding: clamp(16px, 4%, 28px);
-  box-sizing: border-box;
-
-  border-radius: clamp(14px, 4%, 23px);
-
-  background: #09263f;
-
-  color: #ffffff;
-  box-shadow: 0 25px 55px rgba(4, 38, 61, 0.26);
-
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-
-  transform-style: preserve-3d;
-  transform: rotateX(0deg) rotateY(0deg);
-  will-change: transform;
-}
-
-.cartao-residente-digital::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("/img/icon.jpg");
-  background-size: 110%;
-  background-repeat: no-repeat;
-  background-position: center;
-  filter: blur(2px);
-  opacity: 0.45;
-  z-index: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cartao-residente-digital {
-    transform: none !important;
-  }
-}
-
-.cartao-residente-digital::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(
-      circle at top right,
-      rgba(0, 173, 238, 0.35),
-      transparent 38%
-    ),
-    linear-gradient(
-      135deg,
-      rgba(9, 38, 63, 0.82),
-      rgba(14, 83, 129, 0.82)
-    );
-  z-index: 1;
-}
-/*--*/
-.cartao-residente-digital > * {
-  position: relative;
-  z-index: 2;
-}
-
-
-.cartao-topo,
-.cartao-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.cartao-topo span,
-.cartao-footer {
-  color: rgba(255, 255, 255, 0.68);
-}
-
-.cartao-corpo {
-  margin: 40px 0 40px;
-  display: grid;
-
-  gap: 3px;
-}
-
-.cartao-corpo div {
-  display: grid;
-  gap: 2px;
-}
-
-.cartao-corpo small {
-  color: rgba(255, 255, 255, 0.58);
-}
-
-.cartao-corpo strong {
-  font-size: 16px;
-}
-
 .servicos-lista {
   display: grid;
   gap: 13px;
@@ -401,15 +424,6 @@
 
   .dashboard-resumo {
     grid-template-columns: 1fr;
-  }
-
-  .cartao-corpo {
-    margin: 35px 0;
-    grid-template-columns: 1fr;
-  }
-
-  .cartao-footer {
-    flex-direction: column;
   }
 }
 
