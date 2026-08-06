@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { animate } from "animejs";
 import QRCode from "qrcode";
@@ -8,15 +9,21 @@ import QRCode from "qrcode";
 import Header from "@/components/Header";
 
 import {
+  atualizarResidenteGuardado,
   obterResidenteGuardado,
   terminarSessao,
 } from "@/lib/auth";
+
+import { enviarFotosResidente } from "@/lib/api";
+import { comprimirImagemArquivo } from "@/lib/imagens";
 
 import type {
   Residente,
 } from "@/types/residente";
 
 import "./dashboard.css";
+
+const FOTO_CARTAO_PADRAO = "/img/usercard.jpg";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -34,6 +41,15 @@ export default function DashboardPage() {
 
   const [tema, setTema] =
     useState<"claro" | "escuro">("claro");
+
+  const inputFotoCartaoRef =
+    useRef<HTMLInputElement>(null);
+
+  const [enviandoFotoCartao, setEnviandoFotoCartao] =
+    useState(false);
+
+  const [erroFotoCartao, setErroFotoCartao] =
+    useState("");
 
   useEffect(() => {
     const residenteSalvo =
@@ -170,6 +186,58 @@ export default function DashboardPage() {
     router.refresh();
   }
 
+  function abrirSeletorFotoCartao() {
+    setErroFotoCartao("");
+    inputFotoCartaoRef.current?.click();
+  }
+
+  async function aoSelecionarFotoCartao(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const ficheiro = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!ficheiro || !residente) {
+      return;
+    }
+
+    setErroFotoCartao("");
+    setEnviandoFotoCartao(true);
+
+    try {
+      const fotoCartaoBase64 =
+        await comprimirImagemArquivo(ficheiro);
+
+      const resposta = await enviarFotosResidente({
+        residenteId: residente.id,
+        fotoCartaoBase64,
+      });
+
+      if (!resposta.sucesso) {
+        throw new Error(
+          resposta.mensagem ||
+            "Não foi possível atualizar a foto do cartão.",
+        );
+      }
+
+      const residenteAtualizado: Residente = {
+        ...residente,
+        fotoCartaoBase64,
+      };
+
+      setResidente(residenteAtualizado);
+      atualizarResidenteGuardado(residenteAtualizado);
+    } catch (error) {
+      setErroFotoCartao(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar a foto do cartão.",
+      );
+    } finally {
+      setEnviandoFotoCartao(false);
+    }
+  }
+
   if (carregando) {
     return (
       <main className="dashboard-loading">
@@ -278,46 +346,84 @@ export default function DashboardPage() {
             </div>
 
             <div className="cartao-e-qr">
-              <div className="cartao-3d-perspective">
-                <div
-                  className="cartao-residente-digital"
-                  ref={cartaoRef}
-                >
+              <div className="cartao-coluna">
+                <div className="cartao-3d-perspective">
+                  <div
+                    className="cartao-residente-digital"
+                    ref={cartaoRef}
+                  >
 
-                  <div className="cartao-topo, ">
+                    <div className="cartao-foto-canto">
+                      <img
+                        src={
+                          residente.fotoCartaoBase64 ||
+                          FOTO_CARTAO_PADRAO
+                        }
+                        alt={`Foto de ${residente.nome} no cartão`}
+                        className="cartao-foto-residente"
+                      />
+                    </div>
 
-                    <strong>Cabo Verde Virtual Rresidente</strong>
+                    <div className="cartao-topo, ">
 
-                  </div>
-
-                  <div className="cartao-corpo">
-                    <div>
-                      <small>Residente</small>
-                      <strong>
-                        {residente.nome}
-                      </strong>
+                      <strong>Cabo Verde Virtual Rresidente</strong>
 
                     </div>
 
-                    <div>
+                    <div className="cartao-corpo">
+                      <div>
+                        <small>Residente</small>
+                        <strong>
+                          {residente.nome}
+                        </strong>
+
+                      </div>
+
+                      <div>
+                        <br></br>
+                        <small>ID</small>
+                        <strong>
+                          {residente.id}
+                        </strong>
+                      </div>
                       <br></br>
-                      <small>ID</small>
-                      <strong>
-                        {residente.id}
-                      </strong>
-                    </div>
-                    <br></br>
 
-                    <div>
-                      <small>Pacote</small>
-                      <strong>
-                        {residente.pacote ||
-                          "Sem pacote"}
-                      </strong>
+                      <div>
+                        <small>Pacote</small>
+                        <strong>
+                          {residente.pacote ||
+                            "Sem pacote"}
+                        </strong>
+                      </div>
                     </div>
+
                   </div>
-
                 </div>
+
+                <input
+                  ref={inputFotoCartaoRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={aoSelecionarFotoCartao}
+                />
+
+                <button
+                  type="button"
+                  className="btn-add-foto-cartao"
+                  onClick={abrirSeletorFotoCartao}
+                  disabled={enviandoFotoCartao}
+                >
+                  {enviandoFotoCartao
+                    ? "A enviar foto..."
+                    : "Adicionar foto para cartão"}
+                </button>
+
+                {erroFotoCartao && (
+                  <small className="erro-foto-cartao">
+                    {erroFotoCartao}
+                  </small>
+                )}
               </div>
 
               <div className="cartao-qr-lateral">

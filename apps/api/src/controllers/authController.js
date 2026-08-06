@@ -252,27 +252,44 @@ async function registar(req, res) {
 
     const pacoteFinal = pacote || "inativo";
 
-    let saldo = 0;
-    let swipes = 0;
-    let eventos = false;
-    let parking = false;
+    /*
+     * Mapa dos pacotes/sub-planos definidos em apps/web/lib/pacotes.ts.
+     * "Pacote 1/2/3" ficam mantidos por compatibilidade com registos
+     * antigos que ainda possam enviar esses valores.
+     */
+    const CONFIGURACAO_PACOTES = {
+      "Pacote 1": { saldo: 0, swipes: 0, eventos: true, parking: false },
+      "Pacote 2": { saldo: 20000, swipes: 50, eventos: true, parking: false },
+      "Pacote 3": { saldo: 40000, swipes: 80, eventos: true, parking: true },
 
-    if (pacoteFinal === "Pacote 1") {
-      eventos = true;
-    }
+      "Visitor Básico": { saldo: 0, swipes: 0, eventos: true, parking: false },
+      "Visitor Standard": { saldo: 0, swipes: 0, eventos: false, parking: false },
+      "Visitor Plus": { saldo: 0, swipes: 0, eventos: true, parking: false },
 
-    if (pacoteFinal === "Pacote 2") {
-      saldo = 20000;
-      swipes = 50;
-      eventos = true;
-    }
+      "Diaspora Start": { saldo: 2500, swipes: 20, eventos: false, parking: false },
+      "Diaspora Completo": { saldo: 5000, swipes: 50, eventos: true, parking: false },
+      "Diaspora Premium": { saldo: 10000, swipes: 999999, eventos: true, parking: false },
 
-    if (pacoteFinal === "Pacote 3") {
-      saldo = 40000;
-      swipes = 80;
-      eventos = true;
-      parking = true;
-    }
+      "Business Starter": { saldo: 0, swipes: 0, eventos: false, parking: false },
+      "Business Growth": { saldo: 0, swipes: 0, eventos: false, parking: false },
+      "Business Elite": { saldo: 0, swipes: 0, eventos: false, parking: false },
+
+      "Student Essencial": { saldo: 0, swipes: 0, eventos: false, parking: false },
+      "Student Ativo": { saldo: 0, swipes: 0, eventos: false, parking: false },
+      "Student Pro": { saldo: 0, swipes: 0, eventos: false, parking: false }
+    };
+
+    const {
+      saldo,
+      swipes,
+      eventos,
+      parking
+    } = CONFIGURACAO_PACOTES[pacoteFinal] || {
+      saldo: 0,
+      swipes: 0,
+      eventos: false,
+      parking: false
+    };
 
     const qrToken =
       "QR-" +
