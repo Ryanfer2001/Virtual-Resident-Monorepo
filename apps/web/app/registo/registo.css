@@ -85,6 +85,167 @@
   grid-column: 1 / -1;
 }
 
+.fotos-registo-box {
+  padding: 20px;
+  border: 1px solid #d7e0e8;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.fotos-registo-box h3 {
+  margin: 0 0 6px;
+  color: #0b2c46;
+  font-size: 17px;
+}
+
+.fotos-registo-box p {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fotos-registo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.foto-registo-card {
+  display: grid;
+  gap: 10px;
+}
+
+.foto-registo-label {
+  color: #1b354e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.foto-preview-registo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  border: 1px dashed #c3d0da;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #94a3b8;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.foto-preview-registo img {
+  width: 100%;
+  height: 100%;
+  max-height: 220px;
+  object-fit: cover;
+}
+
+.foto-preview-perfil {
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
+  max-width: 160px;
+  margin: 0 auto;
+}
+
+.foto-preview-perfil img {
+  border-radius: 50%;
+}
+
+.foto-registo-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.foto-registo-actions button {
+  flex: 1;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid #d7e0e8;
+  background: #ffffff;
+  color: #0875c1;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.foto-registo-actions button:hover:not(:disabled) {
+  background: #eef7fc;
+}
+
+.foto-registo-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn-remover-foto {
+  color: #b42335 !important;
+}
+
+.modal-camera-fotos {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(11, 44, 70, 0.6);
+}
+
+.modal-camera-conteudo {
+  width: min(480px, 100%);
+  padding: 24px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 28px 80px rgba(7, 42, 68, 0.3);
+}
+
+.modal-camera-conteudo h3 {
+  margin: 0 0 14px;
+  color: #0b2c46;
+  font-size: 17px;
+}
+
+.modal-camera-conteudo video {
+  width: 100%;
+  border-radius: 14px;
+  background: #0b2c46;
+}
+
+.modal-camera-acoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.modal-camera-acoes button {
+  flex: 1;
+  min-height: 46px;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.modal-camera-acoes button:first-child {
+  background: linear-gradient(135deg, #0875c1, #00a3dc);
+  color: #ffffff;
+}
+
+.modal-camera-acoes button:last-child {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+@media (max-width: 600px) {
+  .fotos-registo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .termos-registo {
   display: flex;
   align-items: flex-start;

@@ -6,6 +6,8 @@ import type {
 } from "react";
 
 import {
+  useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -13,7 +15,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import Header from "@/components/Header";
-import { criarResidente } from "@/lib/api";
+import {
+  criarResidente,
+  enviarFotosResidente,
+} from "@/lib/api";
+
+import {
+  obterListaPaises,
+  obterListaPaisesFallback,
+} from "@/lib/paises";
 
 import type {
   RegistoData,
@@ -37,6 +47,40 @@ const estadoInicial: RegistoData = {
   codigoPostal: "7600",
 };
 
+type TipoFoto = "perfil" | "bi";
+
+function capturarFrameCamera(
+  video: HTMLVideoElement,
+): string {
+  const maxLargura = 1000;
+
+  let largura = video.videoWidth;
+  let altura = video.videoHeight;
+
+  if (largura > maxLargura) {
+    altura = Math.round(
+      (altura * maxLargura) / largura,
+    );
+    largura = maxLargura;
+  }
+
+  const canvas =
+    document.createElement("canvas");
+
+  canvas.width = largura;
+  canvas.height = altura;
+
+  const contexto = canvas.getContext("2d");
+
+  if (!contexto) {
+    return "";
+  }
+
+  contexto.drawImage(video, 0, 0, largura, altura);
+
+  return canvas.toDataURL("image/jpeg", 0.75);
+}
+
 export default function RegistoPage() {
   const router = useRouter();
 
@@ -55,6 +99,118 @@ export default function RegistoPage() {
   const [sucesso, setSucesso] = useState("");
   const [carregando, setCarregando] =
     useState(false);
+
+  const [paises, setPaises] = useState<string[]>(
+    obterListaPaisesFallback(),
+  );
+
+  const [fotoPerfil, setFotoPerfil] =
+    useState("");
+
+  const [fotoBI, setFotoBI] = useState("");
+
+  const [cameraAberta, setCameraAberta] =
+    useState(false);
+
+  const [tipoFotoAtual, setTipoFotoAtual] =
+    useState<TipoFoto>("perfil");
+
+  const videoRef =
+    useRef<HTMLVideoElement | null>(null);
+
+  const streamRef =
+    useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    obterListaPaises()
+      .then((lista) => {
+        setPaises(
+          lista.includes("Cabo Verde")
+            ? lista
+            : ["Cabo Verde", ...lista],
+        );
+      })
+      .catch(() => {
+        setPaises(obterListaPaisesFallback());
+      });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      streamRef.current
+        ?.getTracks()
+        .forEach((faixa) => faixa.stop());
+    };
+  }, []);
+
+  async function abrirCamera(tipo: TipoFoto) {
+    try {
+      setErro("");
+
+      const stream =
+        await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode:
+              tipo === "bi"
+                ? "environment"
+                : "user",
+          },
+          audio: false,
+        });
+
+      streamRef.current = stream;
+      setTipoFotoAtual(tipo);
+      setCameraAberta(true);
+
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      });
+    } catch {
+      setErro(
+        "Não foi possível abrir a câmara. Verifica se deste permissão ao navegador.",
+      );
+    }
+  }
+
+  function fecharCamera() {
+    streamRef.current
+      ?.getTracks()
+      .forEach((faixa) => faixa.stop());
+
+    streamRef.current = null;
+    setCameraAberta(false);
+  }
+
+  function capturarFoto() {
+    const video = videoRef.current;
+
+    if (!video || !video.videoWidth) {
+      setErro(
+        "A câmara ainda não está pronta. Aguarda um instante e tenta novamente.",
+      );
+      return;
+    }
+
+    const fotoBase64 = capturarFrameCamera(video);
+
+    if (tipoFotoAtual === "perfil") {
+      setFotoPerfil(fotoBase64);
+    } else {
+      setFotoBI(fotoBase64);
+    }
+
+    fecharCamera();
+  }
+
+  function removerFotoPerfil() {
+    setFotoPerfil("");
+  }
+
+  function removerFotoBI() {
+    setFotoBI("");
+  }
 
   function alterarCampo(
     event: ChangeEvent<
@@ -125,6 +281,10 @@ export default function RegistoPage() {
       return "É obrigatório aceitar os Termos e Condições.";
     }
 
+    if (!fotoBI) {
+      return "A foto do Bilhete de Identidade é obrigatória.";
+    }
+
     return null;
   }
 
@@ -168,9 +328,23 @@ export default function RegistoPage() {
         );
       }
 
+      if (resposta.residenteId) {
+        try {
+          await enviarFotosResidente({
+            residenteId: resposta.residenteId,
+            fotoPerfilBase64: fotoPerfil,
+            fotoBIBase64: fotoBI,
+          });
+        } catch (erroFotos) {
+          console.warn(
+            "Conta criada, mas as fotos não foram enviadas:",
+            erroFotos,
+          );
+        }
+      }
+
       setSucesso(
-        resposta.mensagem ||
-          "Conta criada com sucesso. Agora podes iniciar sessão.",
+        "Conta criada com sucesso. As fotos ficam pendentes de confirmação — o cartão e os métodos de pagamento são liberados depois da verificação. Já podes iniciar sessão.",
       );
 
       setTimeout(() => {
@@ -309,17 +483,14 @@ export default function RegistoPage() {
                   value={dados.pais}
                   onChange={alterarCampo}
                 >
-                  <option value="Cabo Verde">
-                    Cabo Verde
-                  </option>
-
-                  <option value="Portugal">
-                    Portugal
-                  </option>
-
-                  <option value="Outro">
-                    Outro
-                  </option>
+                  {paises.map((pais) => (
+                    <option
+                      key={pais}
+                      value={pais}
+                    >
+                      {pais}
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -382,6 +553,95 @@ export default function RegistoPage() {
                   placeholder="Repete a palavra-passe"
                 />
               </label>
+            </div>
+
+            <div className="fotos-registo-box">
+              <h3>Fotos do residente</h3>
+
+              <p>
+                Tira a foto diretamente pela câmara.
+                A foto de perfil é opcional. A foto
+                do BI é obrigatória e será
+                confirmada pelo administrador.
+              </p>
+
+              <div className="fotos-registo-grid">
+                <div className="foto-registo-card">
+                  <span className="foto-registo-label">
+                    Foto de perfil (opcional)
+                  </span>
+
+                  <div className="foto-preview-registo foto-preview-perfil">
+                    {fotoPerfil ? (
+                      <img
+                        src={fotoPerfil}
+                        alt="Foto de perfil"
+                      />
+                    ) : (
+                      <span>
+                        Sem foto de perfil
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="foto-registo-actions">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        abrirCamera("perfil")
+                      }
+                    >
+                      Tirar foto
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-remover-foto"
+                      onClick={removerFotoPerfil}
+                      disabled={!fotoPerfil}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+
+                <div className="foto-registo-card">
+                  <span className="foto-registo-label">
+                    Foto do Bilhete de Identidade *
+                  </span>
+
+                  <div className="foto-preview-registo">
+                    {fotoBI ? (
+                      <img
+                        src={fotoBI}
+                        alt="Foto do BI"
+                      />
+                    ) : (
+                      <span>Sem foto do BI</span>
+                    )}
+                  </div>
+
+                  <div className="foto-registo-actions">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        abrirCamera("bi")
+                      }
+                    >
+                      Tirar foto
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-remover-foto"
+                      onClick={removerFotoBI}
+                      disabled={!fotoBI}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <label className="termos-registo">
@@ -452,6 +712,41 @@ export default function RegistoPage() {
             </Link>
           </p>
         </section>
+
+        {cameraAberta && (
+          <div className="modal-camera-fotos">
+            <div className="modal-camera-conteudo">
+              <h3>
+                {tipoFotoAtual === "bi"
+                  ? "Foto do Bilhete de Identidade"
+                  : "Foto de perfil"}
+              </h3>
+
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+              />
+
+              <div className="modal-camera-acoes">
+                <button
+                  type="button"
+                  onClick={capturarFoto}
+                >
+                  Capturar foto
+                </button>
+
+                <button
+                  type="button"
+                  onClick={fecharCamera}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </>
   );
