@@ -7,7 +7,7 @@ import type {
 } from "@/types/residente";
 
 const API_BASE_URL =
-   "https://darkgrey-meerkat-287167.hostingersite.com";
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "") || "";
 
 async function interpretarResposta<T>(
   resposta: Response,
@@ -70,6 +70,12 @@ export async function fazerLogin(
 export async function criarResidente(
   dados: RegistoData,
 ): Promise<RegistoResponse> {
+  if (!API_BASE_URL) {
+    throw new Error(
+      "Configuração em falta: a variável NEXT_PUBLIC_API_URL não está definida.",
+    );
+  }
+
   const resposta = await fetch(
     `${API_BASE_URL}/api/residentes/registar`,
     {
@@ -101,8 +107,14 @@ export async function criarResidente(
 export async function enviarFotosResidente(
   dados: EnviarFotosPayload,
 ): Promise<EnviarFotosResponse> {
+  if (!API_BASE_URL) {
+    throw new Error(
+      "Configuração em falta: a variável NEXT_PUBLIC_API_URL não está definida.",
+    );
+  }
+
   const resposta = await fetch(
-    "/api/residentes/fotos",
+    `${API_BASE_URL}/api/residentes/fotos`,
     {
       method: "POST",
       headers: {
@@ -120,7 +132,9 @@ export async function enviarFotosResidente(
   );
 
   const resultado =
-    (await resposta.json()) as EnviarFotosResponse;
+    await interpretarResposta<EnviarFotosResponse>(
+      resposta,
+    );
 
   if (!resposta.ok) {
     throw new Error(
