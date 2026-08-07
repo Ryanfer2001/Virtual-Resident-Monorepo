@@ -316,11 +316,14 @@ async function atualizarFotos(dados) {
     fotoPerfilTipo,
     fotoBIBuffer,
     fotoBITipo,
+    fotoCartaoBuffer,
+    fotoCartaoTipo,
     removerFotoPerfil
   } = dados;
 
   const campos = [];
   const valores = [];
+  let dataFotosAtualizada = false;
 
   /*
    * Remover a fotografia de perfil.
@@ -328,10 +331,12 @@ async function atualizarFotos(dados) {
   if (removerFotoPerfil) {
     campos.push("foto_perfil = NULL");
     campos.push("foto_perfil_tipo = NULL");
+    campos.push("estado_foto_perfil = 'ausente'");
   }
 
   /*
-   * Atualizar a fotografia de perfil.
+   * Atualizar a fotografia de perfil (rosto).
+   * Sempre que é alterada, volta a ficar pendente de revisão.
    */
   if (fotoPerfilBuffer) {
     campos.push("foto_perfil = ?");
@@ -339,6 +344,9 @@ async function atualizarFotos(dados) {
 
     campos.push("foto_perfil_tipo = ?");
     valores.push(fotoPerfilTipo || "image/jpeg");
+
+    campos.push("estado_foto_perfil = 'pendente'");
+    dataFotosAtualizada = true;
   }
 
   /*
@@ -353,6 +361,26 @@ async function atualizarFotos(dados) {
     valores.push(fotoBITipo || "image/jpeg");
 
     campos.push("fotos_aprovadas = 0");
+    campos.push("estado_foto_bi = 'pendente'");
+    dataFotosAtualizada = true;
+  }
+
+  /*
+   * Atualizar a fotografia do cartão.
+   * Sempre que é alterada, volta a ficar pendente de revisão.
+   */
+  if (fotoCartaoBuffer) {
+    campos.push("foto_cartao = ?");
+    valores.push(fotoCartaoBuffer);
+
+    campos.push("foto_cartao_tipo = ?");
+    valores.push(fotoCartaoTipo || "image/jpeg");
+
+    campos.push("estado_foto_cartao = 'pendente'");
+    dataFotosAtualizada = true;
+  }
+
+  if (dataFotosAtualizada) {
     campos.push("data_fotos = NOW()");
   }
 

@@ -20,10 +20,8 @@ import {
   enviarFotosResidente,
 } from "@/lib/api";
 
-import {
-  obterListaPaises,
-  obterListaPaisesFallback,
-} from "@/lib/paises";
+import { PAISES } from "@/lib/paises";
+import { PACOTES } from "@/lib/pacotes";
 
 import type {
   RegistoData,
@@ -42,12 +40,12 @@ const estadoInicial: RegistoData = {
   municipio: "",
   username: "",
   password: "",
-  pacote: "Pacote 2",
+  pacote: "Diaspora Completo",
   pais: "Cabo Verde",
   codigoPostal: "7600",
 };
 
-type TipoFoto = "perfil" | "bi";
+type TipoFoto = "rosto" | "bi";
 
 function capturarFrameCamera(
   video: HTMLVideoElement,
@@ -100,11 +98,7 @@ export default function RegistoPage() {
   const [carregando, setCarregando] =
     useState(false);
 
-  const [paises, setPaises] = useState<string[]>(
-    obterListaPaisesFallback(),
-  );
-
-  const [fotoPerfil, setFotoPerfil] =
+  const [fotoRosto, setFotoRosto] =
     useState("");
 
   const [fotoBI, setFotoBI] = useState("");
@@ -113,7 +107,7 @@ export default function RegistoPage() {
     useState(false);
 
   const [tipoFotoAtual, setTipoFotoAtual] =
-    useState<TipoFoto>("perfil");
+    useState<TipoFoto>("rosto");
 
   const videoRef =
     useRef<HTMLVideoElement | null>(null);
@@ -121,21 +115,7 @@ export default function RegistoPage() {
   const streamRef =
     useRef<MediaStream | null>(null);
 
-  useEffect(() => {
-    obterListaPaises()
-      .then((lista) => {
-        setPaises(
-          lista.includes("Cabo Verde")
-            ? lista
-            : ["Cabo Verde", ...lista],
-        );
-      })
-      .catch(() => {
-        setPaises(obterListaPaisesFallback());
-      });
-  }, []);
-
-  useEffect(() => {
+   useEffect(() => {
     return () => {
       streamRef.current
         ?.getTracks()
@@ -195,8 +175,8 @@ export default function RegistoPage() {
 
     const fotoBase64 = capturarFrameCamera(video);
 
-    if (tipoFotoAtual === "perfil") {
-      setFotoPerfil(fotoBase64);
+    if (tipoFotoAtual === "rosto") {
+      setFotoRosto(fotoBase64);
     } else {
       setFotoBI(fotoBase64);
     }
@@ -204,8 +184,8 @@ export default function RegistoPage() {
     fecharCamera();
   }
 
-  function removerFotoPerfil() {
-    setFotoPerfil("");
+  function removerFotoRosto() {
+    setFotoRosto("");
   }
 
   function removerFotoBI() {
@@ -281,9 +261,16 @@ export default function RegistoPage() {
       return "É obrigatório aceitar os Termos e Condições.";
     }
 
-    if (!fotoBI) {
-      return "A foto do Bilhete de Identidade é obrigatória.";
-    }
+    /*
+     * A foto do BI não é obrigatória por enquanto: ainda não há
+     * reconhecimento facial ligado para validar rosto vs. documento.
+     * Enquanto isso, o registo fica sempre pendente de revisão manual
+     * (ver submeterRegisto / estado "pendente"). Quando a comparação
+     * facial automática existir, volta a exigir a foto aqui.
+     */
+    // if (!fotoBI) {
+    //   return "A foto do Bilhete de Identidade é obrigatória.";
+    // }
 
     return null;
   }
@@ -328,11 +315,14 @@ export default function RegistoPage() {
         );
       }
 
-      if (resposta.residenteId) {
+      if (
+        resposta.residenteId &&
+        (fotoRosto || fotoBI)
+      ) {
         try {
           await enviarFotosResidente({
             residenteId: resposta.residenteId,
-            fotoPerfilBase64: fotoPerfil,
+            fotoPerfilBase64: fotoRosto,
             fotoBIBase64: fotoBI,
           });
         } catch (erroFotos) {
@@ -483,7 +473,7 @@ export default function RegistoPage() {
                   value={dados.pais}
                   onChange={alterarCampo}
                 >
-                  {paises.map((pais) => (
+                  {PAISES.map((pais) => (
                     <option
                       key={pais}
                       value={pais}
@@ -513,17 +503,24 @@ export default function RegistoPage() {
                   value={dados.pacote}
                   onChange={alterarCampo}
                 >
-                  <option value="Pacote 1">
-                    Pacote 1 — Entrada
-                  </option>
-
-                  <option value="Pacote 2">
-                    Pacote 2 — Completo
-                  </option>
-
-                  <option value="Pacote 3">
-                    Pacote 3 — Premium
-                  </option>
+                  {PACOTES.map((categoria) => (
+                    <optgroup
+                      key={categoria.id}
+                      label={categoria.titulo}
+                    >
+                      {categoria.planos.map(
+                        (plano) => (
+                          <option
+                            key={plano.nome}
+                            value={plano.nome}
+                          >
+                            {plano.nome} —{" "}
+                            {plano.preco}
+                          </option>
+                        ),
+                      )}
+                    </optgroup>
+                  ))}
                 </select>
               </label>
 
@@ -559,27 +556,34 @@ export default function RegistoPage() {
               <h3>Fotos do residente</h3>
 
               <p>
-                Tira a foto diretamente pela câmara.
-                A foto de perfil é opcional. A foto
-                do BI é obrigatória e será
-                confirmada pelo administrador.
+                Tira as fotos diretamente pela
+                câmara. Por enquanto nenhuma das
+                duas é obrigatória — ambas ficam
+                pendentes de confirmação manual (o
+                cartão e os métodos de pagamento só
+                são liberados depois da verificação).
+                Quando o reconhecimento facial
+                automático estiver ligado, a foto do
+                rosto passa a ser comparada com a
+                foto do documento.
               </p>
 
               <div className="fotos-registo-grid">
                 <div className="foto-registo-card">
                   <span className="foto-registo-label">
-                    Foto de perfil (opcional)
+                    Foto do rosto (reconhecimento
+                    facial)
                   </span>
 
                   <div className="foto-preview-registo foto-preview-perfil">
-                    {fotoPerfil ? (
+                    {fotoRosto ? (
                       <img
-                        src={fotoPerfil}
-                        alt="Foto de perfil"
+                        src={fotoRosto}
+                        alt="Foto do rosto"
                       />
                     ) : (
                       <span>
-                        Sem foto de perfil
+                        Sem foto do rosto
                       </span>
                     )}
                   </div>
@@ -588,7 +592,7 @@ export default function RegistoPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        abrirCamera("perfil")
+                        abrirCamera("rosto")
                       }
                     >
                       Tirar foto
@@ -597,8 +601,8 @@ export default function RegistoPage() {
                     <button
                       type="button"
                       className="btn-remover-foto"
-                      onClick={removerFotoPerfil}
-                      disabled={!fotoPerfil}
+                      onClick={removerFotoRosto}
+                      disabled={!fotoRosto}
                     >
                       Remover
                     </button>
@@ -607,7 +611,7 @@ export default function RegistoPage() {
 
                 <div className="foto-registo-card">
                   <span className="foto-registo-label">
-                    Foto do Bilhete de Identidade *
+                    Foto do Bilhete de Identidade
                   </span>
 
                   <div className="foto-preview-registo">
@@ -719,7 +723,7 @@ export default function RegistoPage() {
               <h3>
                 {tipoFotoAtual === "bi"
                   ? "Foto do Bilhete de Identidade"
-                  : "Foto de perfil"}
+                  : "Foto do rosto"}
               </h3>
 
               <video

@@ -1,4 +1,13 @@
 const residenteModel = require("../models/residenteModel");
+const auditoriaModel = require("../models/auditoriaModel");
+
+function obterIp(req) {
+  return (
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.socket?.remoteAddress ||
+    "desconhecido"
+  );
+}
 
 function obterResidenteId(req) {
   return (
@@ -167,6 +176,15 @@ async function aprovarFotos(req, res) {
       });
     }
 
+    await auditoriaModel.registarAcao({
+      adminId: req.admin.id,
+      acao: "aprovar_fotos_legado",
+      entidade: "residente",
+      entidadeId: id,
+      valoresNovos: { fotosAprovadas: true },
+      ip: obterIp(req)
+    });
+
     return res.status(200).json({
       sucesso: true,
       mensagem: "Fotos aprovadas com sucesso.",
@@ -208,6 +226,15 @@ async function rejeitarFotos(req, res) {
         mensagem: "Residente não encontrado."
       });
     }
+
+    await auditoriaModel.registarAcao({
+      adminId: req.admin.id,
+      acao: "rejeitar_fotos_legado",
+      entidade: "residente",
+      entidadeId: id,
+      valoresNovos: { fotosAprovadas: false, fotosRemovidas: true },
+      ip: obterIp(req)
+    });
 
     return res.status(200).json({
       sucesso: true,
@@ -298,6 +325,16 @@ async function aprovarPedidoCartao(req, res) {
       });
     }
 
+    await auditoriaModel.registarAcao({
+      adminId: req.admin.id,
+      acao: "aprovar_pedido_cartao",
+      entidade: "residente",
+      entidadeId: id,
+      valoresAnteriores: { estadoPedidoCartao: pedido.estadoPedidoCartao },
+      valoresNovos: { estadoPedidoCartao: "aprovado" },
+      ip: obterIp(req)
+    });
+
     return res.status(200).json({
       sucesso: true,
       mensagem: "Pedido de cartão aprovado com sucesso.",
@@ -352,6 +389,17 @@ async function rejeitarPedidoCartao(req, res) {
         mensagem: "Não foi possível rejeitar o pedido de cartão."
       });
     }
+
+    await auditoriaModel.registarAcao({
+      adminId: req.admin.id,
+      acao: "rejeitar_pedido_cartao",
+      entidade: "residente",
+      entidadeId: id,
+      valoresAnteriores: { estadoPedidoCartao: pedido.estadoPedidoCartao },
+      valoresNovos: { estadoPedidoCartao: "rejeitado" },
+      motivo: req.body?.motivo || null,
+      ip: obterIp(req)
+    });
 
     return res.status(200).json({
       sucesso: true,
@@ -415,6 +463,19 @@ async function marcarCartaoComoGerado(req, res) {
         mensagem: "Não foi possível marcar o cartão como gerado."
       });
     }
+
+    await auditoriaModel.registarAcao({
+      adminId: req.admin.id,
+      acao: "marcar_cartao_gerado",
+      entidade: "residente",
+      entidadeId: id,
+      valoresAnteriores: { cartaoGerado: Boolean(pedido.cartaoGerado) },
+      valoresNovos: {
+        cartaoGerado: true,
+        uid: typeof uid === "string" ? uid.trim() : ""
+      },
+      ip: obterIp(req)
+    });
 
     return res.status(200).json({
       sucesso: true,
@@ -682,6 +743,15 @@ async function gerarCartaoLegado(req, res) {
         mensagem: "Residente não encontrado."
       });
     }
+
+    await auditoriaModel.registarAcao({
+      adminId: req.admin.id,
+      acao: "gerar_cartao_legado",
+      entidade: "residente",
+      entidadeId: id,
+      valoresNovos: { uid: uidMaiusculo },
+      ip: obterIp(req)
+    });
 
     return res.status(200).json({
       sucesso: true,

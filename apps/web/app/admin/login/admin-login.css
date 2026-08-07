@@ -1,0 +1,133 @@
+/* =====================================================
+   LOGIN ADMINISTRATIVO
+===================================================== */
+
+.admin-login-page {
+  min-height: 100vh;
+  padding: 64px 20px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(0, 151, 216, 0.16),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(11, 135, 65, 0.1),
+      transparent 45%
+    ),
+    #0b2c46;
+}
+
+.admin-login-card {
+  width: min(440px, 100%);
+  padding: 40px;
+  border-radius: 25px;
+  background: #ffffff;
+  box-shadow: 0 28px 80px rgba(4, 20, 34, 0.4);
+}
+
+.admin-login-eyebrow {
+  color: #0781c7;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-login-card h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(26px, 4vw, 34px);
+  color: #0b2c46;
+}
+
+.admin-login-card p {
+  margin: 0 0 28px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.admin-login-form {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-login-form label {
+  display: grid;
+  gap: 8px;
+  color: #1b354e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-login-form input {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid #d7e0e8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fbfcfd;
+  color: #122c43;
+  outline: none;
+}
+
+.admin-login-form input:focus {
+  border-color: #168bd2;
+  box-shadow: 0 0 0 4px rgba(22, 139, 210, 0.11);
+}
+
+.admin-login-submit {
+  margin-top: 6px;
+  min-height: 50px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0b8741, #0781c7);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.2s;
+}
+
+.admin-login-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.admin-login-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-login-form-message {
+  padding: 13px 15px;
+  border-radius: 11px;
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid #fecdd3;
+  background: #fff1f2;
+  color: #b42335;
+}
+
+.admin-login-rodape {
+  margin-top: 26px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.admin-login-verificando {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #0b2c46;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+@media (max-width: 500px) {
+  .admin-login-card {
+    padding: 28px 22px;
+  }
+}

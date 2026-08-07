@@ -23,6 +23,64 @@ function converterParaBuffer(valor) {
   return Buffer.from(base64Limpo, "base64");
 }
 
+/*
+ * Só aceita JPEG/PNG/WebP — nunca SVG (pode conter <script>/markup ativo).
+ * O MIME type declarado pelo cliente nunca é confiado sozinho: a
+ * assinatura binária (magic bytes) tem de bater certo com o tipo pedido,
+ * para impedir um ficheiro disfarçado de imagem com um Content-Type falso.
+ */
+const TIPOS_MIME_PERMITIDOS = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp"
+]);
+
+function assinaturaBinariaValida(buffer, tipoMime) {
+  if (!buffer || buffer.length < 12) {
+    return false;
+  }
+
+  if (tipoMime === "image/jpeg") {
+    return (
+      buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+    );
+  }
+
+  if (tipoMime === "image/png") {
+    return (
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47
+    );
+  }
+
+  if (tipoMime === "image/webp") {
+    return (
+      buffer.toString("ascii", 0, 4) === "RIFF" &&
+      buffer.toString("ascii", 8, 12) === "WEBP"
+    );
+  }
+
+  return false;
+}
+
+function validarImagem(buffer, tipoMime) {
+  if (!buffer) {
+    return null;
+  }
+
+  if (!TIPOS_MIME_PERMITIDOS.has(tipoMime)) {
+    return "Tipo de imagem não suportado. Usa JPEG, PNG ou WebP.";
+  }
+
+  if (!assinaturaBinariaValida(buffer, tipoMime)) {
+    return "O ficheiro enviado não corresponde a uma imagem válida.";
+  }
+
+  return null;
+}
+
 function obterResidenteId(req) {
   return (
     req.usuario?.id ||
@@ -67,6 +125,11 @@ async function atualizarFotos(req, res) {
       dados.foto_bi ||
       "";
 
+    const fotoCartaoEntrada =
+      dados.fotoCartaoBase64 ||
+      dados.foto_cartao ||
+      "";
+
     const fotoPerfilTipo =
       dados.fotoPerfilTipo ||
       dados.foto_perfil_tipo ||
@@ -78,6 +141,11 @@ async function atualizarFotos(req, res) {
       dados.foto_bi_tipo ||
       "image/jpeg";
 
+    const fotoCartaoTipo =
+      dados.fotoCartaoTipo ||
+      dados.foto_cartao_tipo ||
+      "image/jpeg";
+
     const removerFotoPerfil =
       dados.removerFotoPerfil === true ||
       dados.removerFotoPerfil === 1 ||
@@ -85,6 +153,7 @@ async function atualizarFotos(req, res) {
 
     let fotoPerfilBuffer = null;
     let fotoBIBuffer = null;
+    let fotoCartaoBuffer = null;
 
     try {
       fotoPerfilBuffer =
@@ -92,6 +161,9 @@ async function atualizarFotos(req, res) {
 
       fotoBIBuffer =
         converterParaBuffer(fotoBIEntrada);
+
+      fotoCartaoBuffer =
+        converterParaBuffer(fotoCartaoEntrada);
     } catch (erro) {
       return res.status(400).json({
         sucesso: false,
@@ -103,6 +175,7 @@ async function atualizarFotos(req, res) {
     if (
       !fotoPerfilBuffer &&
       !fotoBIBuffer &&
+      !fotoCartaoBuffer &&
       !removerFotoPerfil
     ) {
       return res.status(400).json({
@@ -113,26 +186,32 @@ async function atualizarFotos(req, res) {
 
     const limiteBytes = 2 * 1024 * 1024;
 
-    if (
-      fotoPerfilBuffer &&
-      fotoPerfilBuffer.length > limiteBytes
-    ) {
-      return res.status(400).json({
-        sucesso: false,
-        mensagem:
-          "A foto de perfil é muito pesada. Usa menos de 2 MB."
-      });
+    for (const [buffer, nomeAmigavel] of [
+      [fotoPerfilBuffer, "de perfil"],
+      [fotoBIBuffer, "do BI"],
+      [fotoCartaoBuffer, "do cartão"]
+    ]) {
+      if (buffer && buffer.length > limiteBytes) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: `A foto ${nomeAmigavel} é muito pesada. Usa menos de 2 MB.`
+        });
+      }
     }
 
-    if (
-      fotoBIBuffer &&
-      fotoBIBuffer.length > limiteBytes
-    ) {
-      return res.status(400).json({
-        sucesso: false,
-        mensagem:
-          "A foto do BI é muito pesada. Usa menos de 2 MB."
-      });
+    for (const [buffer, tipoMime, nomeAmigavel] of [
+      [fotoPerfilBuffer, fotoPerfilTipo, "de perfil"],
+      [fotoBIBuffer, fotoBITipo, "do BI"],
+      [fotoCartaoBuffer, fotoCartaoTipo, "do cartão"]
+    ]) {
+      const erroValidacao = validarImagem(buffer, tipoMime);
+
+      if (erroValidacao) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: `Foto ${nomeAmigavel}: ${erroValidacao}`
+        });
+      }
     }
 
     const resultado =
@@ -142,6 +221,8 @@ async function atualizarFotos(req, res) {
         fotoPerfilTipo,
         fotoBIBuffer,
         fotoBITipo,
+        fotoCartaoBuffer,
+        fotoCartaoTipo,
         removerFotoPerfil
       });
 
@@ -162,6 +243,11 @@ async function atualizarFotos(req, res) {
     let mensagem =
       "Foto atualizada com sucesso.";
 
+    if (fotoCartaoBuffer) {
+      mensagem =
+        "Foto do cartão atualizada com sucesso. Fica pendente de confirmação do administrador.";
+    }
+
     if (fotoBIBuffer) {
       mensagem =
         "Foto do BI enviada com sucesso. Agora aguarda confirmação do administrador.";
@@ -169,7 +255,8 @@ async function atualizarFotos(req, res) {
 
     if (
       (fotoPerfilBuffer || removerFotoPerfil) &&
-      !fotoBIBuffer
+      !fotoBIBuffer &&
+      !fotoCartaoBuffer
     ) {
       mensagem =
         "Foto de perfil atualizada com sucesso.";
@@ -180,6 +267,7 @@ async function atualizarFotos(req, res) {
       mensagem,
       residenteId: id,
       alterouBI: Boolean(fotoBIBuffer),
+      alterouCartao: Boolean(fotoCartaoBuffer),
       alterouPerfil: Boolean(
         fotoPerfilBuffer || removerFotoPerfil
       )

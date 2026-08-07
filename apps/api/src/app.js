@@ -30,6 +30,12 @@ if (typeof residenteRoutes !== "function") {
   );
 }
 
+if (!process.env.ADMIN_JWT_SECRET) {
+  throw new Error(
+    "ADMIN_JWT_SECRET não está configurada no ficheiro .env. É obrigatória para a área administrativa."
+  );
+}
+
 /*
 |--------------------------------------------------------------------------
 | Segurança

@@ -5,7 +5,9 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "migrar": "node src/scripts/migrar.js",
+    "admin:seed": "node src/scripts/criarAdmin.js"
   },
   "keywords": [
     "noszona",

@@ -71,7 +71,8 @@ export interface RegistoResponse {
 export interface EnviarFotosPayload {
   residenteId: string;
   fotoPerfilBase64?: string;
-  fotoBIBase64: string;
+  fotoBIBase64?: string;
+  fotoCartaoBase64?: string;
 }
 
 export interface EnviarFotosResponse {

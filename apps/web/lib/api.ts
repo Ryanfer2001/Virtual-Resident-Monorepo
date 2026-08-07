@@ -126,6 +126,8 @@ export async function enviarFotosResidente(
         fotoPerfilBase64:
           dados.fotoPerfilBase64 || "",
         fotoBIBase64: dados.fotoBIBase64,
+        fotoCartaoBase64:
+          dados.fotoCartaoBase64 || "",
       }),
       cache: "no-store",
     },
