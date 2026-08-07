@@ -6,9 +6,9 @@ import type {
   Residente,
 } from "@/types/residente";
 
-const NODE_RED_URL = (
-  process.env.NODE_RED_URL ||
-  "https://violet-beaver-178312.hostingersite.com"
+const BACKEND_API_URL = (
+  process.env.BACKEND_API_URL ||
+  "https://darkgrey-meerkat-287167.hostingersite.com"
 ).replace(/\/+$/, "");
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -62,7 +62,7 @@ export async function POST(
     }
 
     const respostaNodeRed = await fetch(
-      `${NODE_RED_URL}/api/residentes/login`,
+      `${BACKEND_API_URL}/api/residentes/login`,
       {
         method: "POST",
         headers: {
