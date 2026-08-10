@@ -455,29 +455,112 @@ export default function DashboardPage() {
                 )}
               />
 
-              <Servico
-                nome="Estacionamento"
-                ativo={Boolean(
-                  residente.parking,
-                )}
-              />
+            <div className="recharge-box">
+              <h3>Recarregar conta</h3>
+              <p className="recharge-note">
+                Escolhe o tipo de recarga e segue para o pagamento
+                seguro Vinti4.
+              </p>
 
-              <Servico
-                nome="QR digital"
-                ativo={Boolean(
-                  residente.qrAtivo,
-                )}
-              />
+              <form
+                className="recharge-form"
+                action="/api/pagamento/iniciar"
+                method="POST"
+                target="_blank"
+              >
+                <input
+                  type="hidden"
+                  name="residenteId"
+                  value={residente.id}
+                />
+                <input
+                  type="hidden"
+                  name="username"
+                  value={residente.username}
+                />
+                <input
+                  type="hidden"
+                  name="pacote"
+                  value={residente.pacote || "Recarga"}
+                />
+                <input
+                  type="hidden"
+                  name="email"
+                  value={residente.email || ""}
+                />
+                <input
+                  type="hidden"
+                  name="telefone"
+                  value={residente.telefone || ""}
+                />
+                <input
+                  type="hidden"
+                  name="municipio"
+                  value={residente.municipio || "Praia"}
+                />
+                <input
+                  type="hidden"
+                  name="morada"
+                  value={residente.morada || "Cabo Verde"}
+                />
+                <input
+                  type="hidden"
+                  name="codigoPostal"
+                  value={residente.codigoPostal || ""}
+                />
 
-              <Servico
-                nome="Cartão físico"
-                ativo={Boolean(
-                  residente.cartaoGerado,
-                )}
-              />
-            </div>
+                <div className="form-group">
+                  <label htmlFor="tipoRecarga">
+                    Tipo de recarga
+                  </label>
+                  <select 
+                    id="tipoRecarga"
+                    name="tipo"
+                    className="recharge-btn"
+                    defaultValue="saldo"
+                    required
+                  >
+                    <option value="saldo">
+                      Recarregar saldo (CVE)
+                    </option>
+                    <option value="swipe">
+                      Recarregar swipes 
+                    </option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="valorRecarga">
+                    Valor da recarga
+                  </label>
+                  <input
+                    id="valorRecarga"
+                    name="valor"
+                    type="number"
+                    min={1}
+                    step={1}
+                    inputMode="numeric"
+                    required
+                    placeholder="Ex.: 5000"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="recharge-btn"
+                >
+                  Continuar para pagamento →
+                </button>
+              </form>
+              </div>
+
+
+              </div>
+
+            
           </article>
         </section>
+        
         </div>
       </main>
     </div>

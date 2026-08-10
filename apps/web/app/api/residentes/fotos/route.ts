@@ -4,9 +4,9 @@ import type {
   EnviarFotosResponse,
 } from "@/types/residente";
 
-const BACKEND_API_URL = (
-  process.env.BACKEND_API_URL ||
-  "https://darkgrey-meerkat-287167.hostingersite.com"
+const NODE_RED_URL = (
+  process.env.NODE_RED_URL ||
+  "https://violet-beaver-178312.hostingerite.com"
 ).replace(/\/+$/, "");
 
 export async function POST(
@@ -16,7 +16,7 @@ export async function POST(
     const body = await request.json();
 
     const respostaNodeRed = await fetch(
-      `${BACKEND_API_URL}/api/residentes/fotos`,
+      `${NODE_RED_URL}/api/residentes/fotos`,
       {
         method: "POST",
         headers: {
