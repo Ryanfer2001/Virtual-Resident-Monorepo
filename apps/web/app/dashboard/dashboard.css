@@ -131,6 +131,21 @@
   color: #9a6500;
 }
 
+.dashboard-aviso-pacote {
+  margin-bottom: 28px;
+  padding: 16px 20px;
+  border: 1px solid #ffe1a8;
+  border-radius: 14px;
+  background: #fff7e6;
+  color: #9a6500;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dashboard-aviso-pacote strong {
+  color: #7a4f00;
+}
+
 .cartao-e-qr {
   display: flex;
   align-items: center;
@@ -514,6 +529,16 @@
   background: rgba(15, 27, 51, 0.85);
   border-color: rgba(255, 255, 255, 0.15);
   color: #eaf2fb;
+}
+
+.tema-escuro .dashboard-aviso-pacote {
+  background: rgba(154, 101, 0, 0.18);
+  border-color: rgba(255, 209, 128, 0.35);
+  color: #ffd180;
+}
+
+.tema-escuro .dashboard-aviso-pacote strong {
+  color: #ffe1a8;
 }
 
 .tema-escuro .dashboard-card,

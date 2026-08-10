@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
  description:
-    "Identidade digital, carteira virtual e acesso aos serviços da NOSZONA Smart City.",
+    "Identidade digital, carteira virtual.",
   icons: {
     icon: "/img/favicon.jpg",
   },

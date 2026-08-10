@@ -51,6 +51,9 @@ export default function DashboardPage() {
   const [erroFotoCartao, setErroFotoCartao] =
     useState("");
 
+  const [pedidoPacote, setPedidoPacote] =
+    useState<string | null>(null);
+
   useEffect(() => {
     const residenteSalvo =
       obterResidenteGuardado();
@@ -63,6 +66,28 @@ export default function DashboardPage() {
     setResidente(residenteSalvo);
     setCarregando(false);
   }, [router]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(
+      window.location.search,
+    );
+
+    const pacoteParam = params.get(
+      "pedidoPacote",
+    );
+
+    if (!pacoteParam) {
+      return;
+    }
+
+    setPedidoPacote(pacoteParam);
+
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname,
+    );
+  }, []);
 
   useEffect(() => {
     const temaSalvo = localStorage.getItem("nz-dashboard-tema");
@@ -283,6 +308,15 @@ export default function DashboardPage() {
             {tema === "claro" ? "🌙 Modo noturno" : "☀️ Modo diurno"}
           </button>
         </section>
+
+        {pedidoPacote && (
+          <div className="dashboard-aviso-pacote">
+            Pedido de mudança para o pacote{" "}
+            <strong>{pedidoPacote}</strong> enviado.
+            A nossa equipa vai confirmar a
+            alteração em breve.
+          </div>
+        )}
 
         <section className="dashboard-resumo">
           <DashboardCard

@@ -24,6 +24,7 @@ const subPlanosPorPacote = Object.fromEntries(
   const [user, setUser] = useState<any>(null);
   const [qrTime, setQrTime] = useState(30);
   const [pacoteAtivo, setPacoteAtivo] = useState<PacoteId | null>(null);
+  const [pacoteParaMudar, setPacoteParaMudar] = useState<string | null>(null);
   const router = useRouter();
 
   // Restaura a sessão guardada (login feito na página /login) para que o
@@ -40,8 +41,25 @@ const subPlanosPorPacote = Object.fromEntries(
     setView('pacote');
   }
 
-  function escolherSubPlano() {
-    setView('registo');
+  function irParaRegisto(pacoteNome: string) {
+    setView('home');
+
+    if (user) {
+      if (user.pacote && user.pacote !== pacoteNome) {
+        setPacoteParaMudar(pacoteNome);
+      } else {
+        router.push("/dashboard");
+      }
+      return;
+    }
+
+    router.push(`/registo?pacote=${encodeURIComponent(pacoteNome)}`);
+  }
+
+  function confirmarMudancaPacote() {
+    if (!pacoteParaMudar) return;
+    router.push(`/dashboard?pedidoPacote=${encodeURIComponent(pacoteParaMudar)}`);
+    setPacoteParaMudar(null);
   }
 
 
@@ -93,8 +111,8 @@ const subPlanosPorPacote = Object.fromEntries(
               </p>
 
               <div className="hero-actions">
-                <button className="btn btn-gold" onClick={() => setView('registo')}>Explorar Cabo Verde →</button>
-                <button className="btn btn-outline-white" onClick={() => setView('login')}>Já tenho conta</button>
+                <button className="btn btn-gold" onClick={() => router.push("/registo")}>Explorar Cabo Verde →</button>
+                <button className="btn btn-outline-white" onClick={() => router.push("/login")}>Já tenho conta</button>
               </div>
 
               <div className="hero-stats">
@@ -114,7 +132,7 @@ const subPlanosPorPacote = Object.fromEntries(
             </div>
 
             <div className="hero-visual">
-              <CardRoulette onSelect={(card) => abrirPopupPacote(card.tipo)} />
+              <CardRoulette onSelect={(card) => irParaRegisto(card.plano)} />
             </div>
           </div>
         </section>
@@ -125,7 +143,7 @@ const subPlanosPorPacote = Object.fromEntries(
         <div className="trust-section">
           <div className="trust-inner">
             <div className="trust-item">
-              <div className="trust-value">3<span>+</span></div>
+              <div className="trust-value">varios</div>
               <div className="trust-label">Pacotes disponíveis</div>
             </div>
             <div className="trust-item">
@@ -269,7 +287,7 @@ const subPlanosPorPacote = Object.fromEntries(
         </section>
       )}
 
-      {/* ==================== POPUP PACOTE (3 opções) ==================== */}
+      {/* ==================== POPUP PACOTE  ==================== */}
       {view === 'pacote' && pacoteAtivo && (
         <div className="popup-overlay" onClick={() => setView('home')}>
           <div className="popup-box popup-box-wide" onClick={(e) => e.stopPropagation()}>
@@ -283,7 +301,7 @@ const subPlanosPorPacote = Object.fromEntries(
                   key={plano.nome}
                   type="button"
                   className="subplano-item"
-                  onClick={escolherSubPlano}
+                  onClick={() => irParaRegisto(plano.nome)}
                 >
                   <div className="subplano-item-topo">
                     <span className="subplano-nome">{plano.nome}</span>
@@ -301,6 +319,26 @@ const subPlanosPorPacote = Object.fromEntries(
         </div>
       )}
 
+      {/* ==================== POPUP MUDAR DE PACOTE ==================== */}
+      {pacoteParaMudar && user && (
+        <div className="popup-overlay" onClick={() => setPacoteParaMudar(null)}>
+          <div className="popup-box" onClick={(e) => e.stopPropagation()}>
+            <h2>Mudar de pacote?</h2>
+            <p>
+              A tua conta tem atualmente o pacote <strong>{user.pacote || "nenhum"}</strong>.
+              Queres pedir a mudança para <strong>{pacoteParaMudar}</strong>?
+              O pedido fica pendente de confirmação manual da nossa equipa,
+              tal como o pedido do cartão físico.
+            </p>
+            <button type="button" className="popup-btn" onClick={confirmarMudancaPacote}>
+              Sim, pedir mudança
+            </button>
+            <button type="button" className="popup-btn-secundario" onClick={() => setPacoteParaMudar(null)}>
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
 
 
       {/* ==================== CTA BANNER ==================== */}
@@ -309,8 +347,8 @@ const subPlanosPorPacote = Object.fromEntries(
           <h2>Junta-te à Smart City<br />de Cabo Verde.</h2>
           <p>O teu cartão digital está a um registo de distância.</p>
           <div className="cta-actions">
-            <button className="btn btn-gold" onClick={() => setView('registo')}>Criar conta agora →</button>
-            <button className="btn btn-outline-white" onClick={() => setView('login')}>Já tenho conta</button>
+            <button className="btn btn-gold" onClick={() => router.push("/registo")}>Criar conta agora →</button>
+            <button className="btn btn-outline-white" onClick={() => router.push("/login")}>Já tenho conta</button>
           </div>
         </div>
       )}

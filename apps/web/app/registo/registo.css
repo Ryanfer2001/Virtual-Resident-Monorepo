@@ -85,6 +85,25 @@
   grid-column: 1 / -1;
 }
 
+.btn-pacote {
+  background: linear-gradient(135deg, #00c3e3 0%, #0288d1 100%) !important;
+  border: none !important;
+  color: #061827 !important;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(0, 195, 227, 0.35);
+  cursor: pointer;
+}
+
+.btn-pacote:focus {
+  box-shadow: 0 0 0 4px rgba(0, 195, 227, 0.3);
+}
+
+.btn-pacote option {
+  background: #ffffff;
+  color: #122c43;
+  font-weight: 500;
+}
+
 .fotos-registo-box {
   padding: 20px;
   border: 1px solid #d7e0e8;
@@ -121,6 +140,10 @@
   font-size: 14px;
   font-weight: 700;
 }
+
+
+
+
 
 .foto-preview-registo {
   display: flex;
@@ -261,6 +284,113 @@
   height: 18px;
   margin-top: 2px;
   accent-color: #168bd2;
+}
+
+.link-termos {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #0875c1;
+  font-weight: 700;
+  font-size: inherit;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-termos:hover {
+  color: #05517f;
+}
+
+.modal-termos {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(11, 44, 70, 0.6);
+}
+
+.modal-termos-conteudo {
+  width: min(640px, 100%);
+  max-height: min(80vh, 720px);
+  display: flex;
+  flex-direction: column;
+  padding: 28px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 28px 80px rgba(7, 42, 68, 0.3);
+}
+
+.modal-termos-conteudo h3 {
+  margin: 0 0 4px;
+  color: #0b2c46;
+  font-size: 19px;
+}
+
+.modal-termos-atualizado {
+  margin: 0 0 16px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.modal-termos-corpo {
+  overflow-y: auto;
+  padding-right: 10px;
+  border-top: 1px solid #eef2f6;
+  border-bottom: 1px solid #eef2f6;
+  color: #334155;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.modal-termos-corpo h4 {
+  margin: 18px 0 6px;
+  color: #0b2c46;
+  font-size: 14.5px;
+}
+
+.modal-termos-corpo h4:first-child {
+  margin-top: 12px;
+}
+
+.modal-termos-corpo p {
+  margin: 0 0 10px;
+}
+
+.modal-termos-acoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.modal-termos-acoes button {
+  flex: 1;
+  min-height: 46px;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.modal-termos-acoes button:first-child {
+  background: linear-gradient(135deg, #0875c1, #00a3dc);
+  color: #ffffff;
+}
+
+.modal-termos-acoes button:last-child {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+@media (max-width: 600px) {
+  .modal-termos-conteudo {
+    padding: 22px 18px;
+  }
 }
 
 .pagamento-seguro-box {

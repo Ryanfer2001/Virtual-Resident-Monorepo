@@ -73,9 +73,9 @@ header {
 .logo-img {
   margin-top: 25px;
   margin-bottom: 10px;
-  width: 330px !important;
-  height: auto !important;
-  max-width: none !important;
+  width: 330px;
+  height: auto;
+  max-width: 100%;
 
   object-fit: contain;
   display: block;
@@ -178,6 +178,8 @@ header {
   background: rgba(255,255,255,0.15);
   transform: translateY(-2px);
 }
+
+
 
 /* ============ HERO ============ */
 .hero {
@@ -1290,11 +1292,11 @@ footer p { font-size: 14px; color: rgba(255,255,255,0.35); font-weight: 300; }
 footer p strong { color: rgba(255,255,255,0.60); font-weight: 500; }
 
 /* ============ RESPONSIVE ============ */
-@media (width: 1080px) {
+@media (max-width: 1080px) {
   .hero-inner { grid-template-columns: 1fr; gap: 30px; }
-  .packages-grid { grid-template-columns: 4fr; max-width: 100px; }
+  .packages-grid { grid-template-columns: repeat(2, 1fr); }
   .pkg-card.featured { transform: none; }
-  .steps { grid-template-columns: 1fr; max-width: 500px; }
+  .steps { grid-template-columns: 1fr; max-width: 500px; margin-inline: auto; }
   .trust-inner { grid-template-columns: repeat(2,1fr); }
   .trust-item { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
   .trust-item:nth-child(2n) { border-right: none; }
@@ -1303,10 +1305,12 @@ footer p strong { color: rgba(255,255,255,0.60); font-weight: 500; }
   .user-greeting { display: none; }
 }
 @media (max-width: 768px) {
-  .logo-img { height: 45px; }
+  .logo-img { width: 220px; }
 }
 @media (max-width: 600px) {
   header { padding: 0 5%; }
+  .logo-img { width: 170px; margin-top: 16px; margin-bottom: 8px; }
+  .packages-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr; }
   .form-body, .form-panel-top { padding: 24px 22px; }
