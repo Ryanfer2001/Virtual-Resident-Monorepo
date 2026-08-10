@@ -6,7 +6,7 @@ import type {
 
 const NODE_RED_URL = (
   process.env.NODE_RED_URL ||
-  "https://violet-beaver-178312.hostingersite.com"
+  "https://violet-beaver-178312.hostingerite.com"
 ).replace(/\/+$/, "");
 
 export async function POST(

@@ -8,7 +8,7 @@ import type {
 
 const NODE_RED_URL = (
   process.env.NODE_RED_URL ||
-  "https://violet-beaver-178312.hostingersite.com"
+  "https://darkgrey-meerkat-287167.hostingersite.com"
 ).replace(/\/+$/, "");
 
 const JWT_SECRET = process.env.JWT_SECRET;
