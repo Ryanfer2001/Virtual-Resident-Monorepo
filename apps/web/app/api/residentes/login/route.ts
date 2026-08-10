@@ -6,8 +6,8 @@ import type {
   Residente,
 } from "@/types/residente";
 
-const NODE_RED_URL = (
-  process.env.NODE_RED_URL ||
+const BACKEND_API_URL = (
+  process.env.BACKEND_API_URL ||
   "https://darkgrey-meerkat-287167.hostingersite.com"
 ).replace(/\/+$/, "");
 
@@ -62,7 +62,7 @@ export async function POST(
     }
 
     const respostaNodeRed = await fetch(
-      `${NODE_RED_URL}/api/residentes/login`,
+      `${BACKEND_API_URL}/api/residentes/login`,
       {
         method: "POST",
         headers: {
