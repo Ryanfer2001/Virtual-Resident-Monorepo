@@ -557,8 +557,8 @@ export default function DashboardPage() {
                     <option value="saldo">
                       Recarregar saldo (CVE)
                     </option>
-                    <option value="swipe">
-                      Recarregar swipes 
+                    <option value="swipe" disabled>
+                      Recarregar swipes (brevemente disponível)
                     </option>
                   </select>
                 </div>

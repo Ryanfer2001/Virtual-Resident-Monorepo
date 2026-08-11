@@ -25,7 +25,7 @@ function escaparHtml(valor) {
 function paginaErroPagamento(mensagem) {
   const frontendUrl =
     process.env.FRONTEND_URL ||
-    "http://127.0.0.1:5500";
+    "https://noszona-monorepo-web.vercel.app";
 
   return `
 <!DOCTYPE html>
@@ -104,7 +104,7 @@ function paginaRetornoPagamento({
 }) {
   const dashboardUrl =
     process.env.FRONTEND_DASHBOARD_URL ||
-    "http://127.0.0.1:5500/#dashboard";
+    "https://noszona-monorepo-web.vercel.app/dashboard";
 
   return `
 <!DOCTYPE html>
@@ -165,6 +165,15 @@ function paginaRetornoPagamento({
       Voltar à NOSZONA
     </a>
   </div>
+
+  <script>
+    setTimeout(
+      function () {
+        window.location.href = ${JSON.stringify(dashboardUrl)};
+      },
+      3000
+    );
+  </script>
 </body>
 </html>
   `;
