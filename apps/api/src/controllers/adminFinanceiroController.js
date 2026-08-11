@@ -1,15 +1,8 @@
 const pool = require("../config/database");
 const auditoriaModel = require("../models/auditoriaModel");
+const { obterIp } = require("../utils/request");
 
 const OPERACOES_PERMITIDAS = ["adicionar", "retirar", "definir"];
-
-function obterIp(req) {
-  return (
-    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    "desconhecido"
-  );
-}
 
 function calcularNovoValor(operacao, valorAtual, valor) {
   if (operacao === "definir") {

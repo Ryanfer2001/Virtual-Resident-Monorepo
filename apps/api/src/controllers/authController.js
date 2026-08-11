@@ -3,6 +3,45 @@ const bcrypt = require("bcrypt");
 
 const residenteModel = require("../models/residenteModel");
 
+/*
+ * Compatibilidade temporária com residentes antigos, cujas passwords
+ * ainda estão guardadas em texto simples (identificadas pela ausência
+ * do prefixo bcrypt $2a$/$2b$/$2y$).
+ */
+async function verificarPassword(passwordFornecida, passwordGuardada) {
+  const valorGuardado = passwordGuardada || "";
+
+  const passwordUsaBcrypt =
+    valorGuardado.startsWith("$2a$") ||
+    valorGuardado.startsWith("$2b$") ||
+    valorGuardado.startsWith("$2y$");
+
+  if (passwordUsaBcrypt) {
+    return bcrypt.compare(passwordFornecida, valorGuardado);
+  }
+
+  return passwordFornecida === valorGuardado;
+}
+
+function assinarTokenResidente(residente) {
+  if (!process.env.JWT_SECRET) {
+    throw new Error(
+      "JWT_SECRET não está configurada no ficheiro .env."
+    );
+  }
+
+  return jwt.sign(
+    {
+      id: residente.id,
+      username: residente.username
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "8h"
+    }
+  );
+}
+
 async function login(req, res) {
   try {
     const { username, password } = req.body;
@@ -27,27 +66,10 @@ async function login(req, res) {
       });
     }
 
-    const passwordGuardada = residente.password || "";
-
-    const passwordUsaBcrypt =
-      passwordGuardada.startsWith("$2a$") ||
-      passwordGuardada.startsWith("$2b$") ||
-      passwordGuardada.startsWith("$2y$");
-
-    let passwordValida = false;
-
-    if (passwordUsaBcrypt) {
-      passwordValida = await bcrypt.compare(
-        password,
-        passwordGuardada
-      );
-    } else {
-      /*
-       * Compatibilidade temporária com residentes antigos,
-       * cujas passwords ainda estão guardadas em texto simples.
-       */
-      passwordValida = password === passwordGuardada;
-    }
+    const passwordValida = await verificarPassword(
+      password,
+      residente.password
+    );
 
     if (!passwordValida) {
       return res.status(401).json({
@@ -56,22 +78,7 @@ async function login(req, res) {
       });
     }
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error(
-        "JWT_SECRET não está configurada no ficheiro .env."
-      );
-    }
-
-    const token = jwt.sign(
-      {
-        id: residente.id,
-        username: residente.username
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "8h"
-      }
-    );
+    const token = assinarTokenResidente(residente);
 
     return res.status(200).json({
       sucesso: true,
@@ -395,27 +402,10 @@ async function loginLegado(req, res) {
       });
     }
 
-    const passwordGuardada = residente.password || "";
-
-    const passwordUsaBcrypt =
-      passwordGuardada.startsWith("$2a$") ||
-      passwordGuardada.startsWith("$2b$") ||
-      passwordGuardada.startsWith("$2y$");
-
-    let passwordValida = false;
-
-    if (passwordUsaBcrypt) {
-      passwordValida = await bcrypt.compare(
-        password,
-        passwordGuardada
-      );
-    } else {
-      /*
-       * Compatibilidade temporária com residentes antigos,
-       * cujas passwords ainda estão guardadas em texto simples.
-       */
-      passwordValida = password === passwordGuardada;
-    }
+    const passwordValida = await verificarPassword(
+      password,
+      residente.password
+    );
 
     if (!passwordValida) {
       return res.status(401).json({
@@ -425,22 +415,7 @@ async function loginLegado(req, res) {
       });
     }
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error(
-        "JWT_SECRET não está configurada no ficheiro .env."
-      );
-    }
-
-    const token = jwt.sign(
-      {
-        id: residente.id,
-        username: residente.username
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "8h"
-      }
-    );
+    const token = assinarTokenResidente(residente);
 
     return res.status(200).json({
       sucesso: true,
@@ -531,22 +506,7 @@ async function googleLoginLegado(req, res) {
       });
     }
 
-    if (!process.env.JWT_SECRET) {
-      throw new Error(
-        "JWT_SECRET não está configurada no ficheiro .env."
-      );
-    }
-
-    const token = jwt.sign(
-      {
-        id: residente.id,
-        username: residente.username
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "8h"
-      }
-    );
+    const token = assinarTokenResidente(residente);
 
     return res.status(200).json({
       sucesso: true,

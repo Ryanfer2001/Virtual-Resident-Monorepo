@@ -1,5 +1,6 @@
 const pool = require("../config/database");
 const auditoriaModel = require("../models/auditoriaModel");
+const { obterIp } = require("../utils/request");
 
 const LIMITE_MAXIMO_PAGINA = 100;
 
@@ -11,14 +12,6 @@ const COLUNAS_ORDENACAO_PERMITIDAS = {
   saldo: "saldo",
   swipes: "swipes"
 };
-
-function obterIp(req) {
-  return (
-    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    "desconhecido"
-  );
-}
 
 function construirFiltros(query) {
   const condicoes = [];

@@ -63,38 +63,40 @@ export default function ResumoCards({ resumo }: ResumoCardsProps) {
       <section className="admin-painel">
         <h2>Registos recentes</h2>
 
-        <table className="admin-tabela">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Utilizador</th>
-              <th>Plano</th>
-              <th>Estado</th>
-              <th>Criado em</th>
-            </tr>
-          </thead>
-          <tbody>
-            {resumo.registosRecentes.map((residente) => (
-              <tr key={residente.id}>
-                <td>{residente.nome}</td>
-                <td>{residente.username}</td>
-                <td>{residente.pacote}</td>
-                <td>
-                  <span className={`admin-badge admin-badge-${residente.estado}`}>
-                    {residente.estado}
-                  </span>
-                </td>
-                <td>{new Date(residente.criadoEm).toLocaleString("pt-PT")}</td>
-              </tr>
-            ))}
-
-            {resumo.registosRecentes.length === 0 && (
+        <div className="admin-tabela-scroll">
+          <table className="admin-tabela">
+            <thead>
               <tr>
-                <td colSpan={5}>Sem registos recentes.</td>
+                <th>Nome</th>
+                <th>Utilizador</th>
+                <th>Plano</th>
+                <th>Estado</th>
+                <th>Criado em</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {resumo.registosRecentes.map((residente) => (
+                <tr key={residente.id}>
+                  <td>{residente.nome}</td>
+                  <td>{residente.username}</td>
+                  <td>{residente.pacote}</td>
+                  <td>
+                    <span className={`admin-badge admin-badge-${residente.estado}`}>
+                      {residente.estado}
+                    </span>
+                  </td>
+                  <td>{new Date(residente.criadoEm).toLocaleString("pt-PT")}</td>
+                </tr>
+              ))}
+
+              {resumo.registosRecentes.length === 0 && (
+                <tr>
+                  <td colSpan={5}>Sem registos recentes.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </section>
     </>
   );

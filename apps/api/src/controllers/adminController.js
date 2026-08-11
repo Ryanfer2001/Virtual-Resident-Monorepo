@@ -1,13 +1,6 @@
 const residenteModel = require("../models/residenteModel");
 const auditoriaModel = require("../models/auditoriaModel");
-
-function obterIp(req) {
-  return (
-    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    "desconhecido"
-  );
-}
+const { obterIp } = require("../utils/request");
 
 function obterResidenteId(req) {
   return (

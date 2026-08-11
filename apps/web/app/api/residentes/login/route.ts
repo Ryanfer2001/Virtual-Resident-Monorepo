@@ -5,6 +5,7 @@ import type {
   LoginResponse,
   Residente,
 } from "@/types/residente";
+import { encaminharParaNodeRed } from "@/lib/node-red-proxy";
 
 const NODE_RED_URL = (
   process.env.NODE_RED_URL ||
@@ -61,51 +62,25 @@ export async function POST(
       );
     }
 
-    const respostaNodeRed = await fetch(
-      `${NODE_RED_URL}/api/residentes/login`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          username,
-          password,
-        }),
-        cache: "no-store",
-      },
-    );
+    const resultado = await encaminharParaNodeRed<NodeRedLoginResponse>({
+      baseUrl: NODE_RED_URL,
+      caminho: "/api/residentes/login",
+      body: { username, password },
+      mensagemRespostaVazia:
+        "O Node-RED devolveu uma resposta vazia.",
+      mensagemRespostaInvalida:
+        "O Node-RED devolveu uma resposta inválida.",
+    });
 
-    const texto =
-      await respostaNodeRed.text();
-
-    let dados: NodeRedLoginResponse;
-
-    try {
-      dados = texto
-        ? JSON.parse(texto)
-        : {
-            sucesso: false,
-            mensagem:
-              "O Node-RED devolveu uma resposta vazia.",
-          };
-    } catch {
-      return NextResponse.json(
-        {
-          sucesso: false,
-          mensagem:
-            "O Node-RED devolveu uma resposta inválida.",
-          respostaOriginal: texto,
-        },
-        {
-          status: 502,
-        },
-      );
+    if ("erro" in resultado) {
+      return resultado.erro;
     }
 
+    const dados = resultado.dados;
+
     if (
-      !respostaNodeRed.ok ||
+      resultado.status < 200 ||
+      resultado.status >= 300 ||
       !dados.sucesso ||
       !dados.residente
     ) {

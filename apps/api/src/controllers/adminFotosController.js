@@ -1,5 +1,6 @@
 const pool = require("../config/database");
 const auditoriaModel = require("../models/auditoriaModel");
+const { obterIp } = require("../utils/request");
 
 /*
  * Mapa único do tipo (perfil/bi/cartao) para as colunas reais em
@@ -42,14 +43,6 @@ const MAPA_TIPO_FOTO = {
     revisadoPor: "foto_cartao_revisado_por"
   }
 };
-
-function obterIp(req) {
-  return (
-    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    "desconhecido"
-  );
-}
 
 function validarTipo(tipo, res) {
   const definicao = MAPA_TIPO_FOTO[tipo];

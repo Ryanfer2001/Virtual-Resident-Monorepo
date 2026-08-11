@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 
 const adminModel = require("../models/adminModel");
+const { obterIp } = require("../utils/request");
 
 const {
   JWT_ISSUER,
@@ -33,14 +34,6 @@ function limiteIpExcedido(ip) {
   tentativasPorIp.set(ip, dentroDaJanela);
 
   return dentroDaJanela.length > LIMITE_PEDIDOS_POR_IP;
-}
-
-function obterIp(req) {
-  return (
-    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    "desconhecido"
-  );
 }
 
 function normalizarUsername(username) {

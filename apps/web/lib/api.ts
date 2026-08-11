@@ -6,31 +6,30 @@ import type {
   RegistoResponse,
 } from "@/types/residente";
 
-export async function fazerLogin(
-  username: string,
-  password: string,
-): Promise<LoginResponse> {
-  const resposta = await fetch(
-    "/api/residentes/login",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        username: username.trim(),
-        password,
-      }),
-      cache: "no-store",
+/*
+ * Wrapper partilhado pelos pedidos a /api/residentes/* — mesmo padrão do
+ * pedido<T> em lib/admin-api.ts. Centraliza o fetch, a leitura segura do
+ * JSON e o erro de fallback; cada chamador mantém a sua própria mensagem
+ * de erro (com ou sem código de estado, tal como antes desta extração).
+ */
+async function pedido<T extends { mensagem?: string }>(
+  caminho: string,
+  opcoes: RequestInit,
+  mensagemErroPadrao: (status: number) => string,
+): Promise<T> {
+  const resposta = await fetch(caminho, {
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
     },
-  );
+    cache: "no-store",
+    ...opcoes,
+  });
 
-  let dados: LoginResponse;
+  let dados: T;
 
   try {
-    dados =
-      (await resposta.json()) as LoginResponse;
+    dados = (await resposta.json()) as T;
   } catch {
     throw new Error(
       "O servidor devolveu uma resposta inválida.",
@@ -39,54 +38,50 @@ export async function fazerLogin(
 
   if (!resposta.ok) {
     throw new Error(
-      dados.mensagem ||
-        `Erro durante o login (${resposta.status}).`,
+      dados.mensagem || mensagemErroPadrao(resposta.status),
     );
   }
 
   return dados;
 }
 
+export async function fazerLogin(
+  username: string,
+  password: string,
+): Promise<LoginResponse> {
+  return pedido<LoginResponse>(
+    "/api/residentes/login",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        username: username.trim(),
+        password,
+      }),
+    },
+    (status) => `Erro durante o login (${status}).`,
+  );
+}
+
 export async function criarResidente(
   dados: RegistoData,
 ): Promise<RegistoResponse> {
-  const resposta = await fetch(
+  return pedido<RegistoResponse>(
     "/api/residentes/registar",
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
       body: JSON.stringify(dados),
-      cache: "no-store",
     },
+    (status) => `Erro durante o registo (${status}).`,
   );
-
-  const resultado =
-    (await resposta.json()) as RegistoResponse;
-
-  if (!resposta.ok) {
-    throw new Error(
-      resultado.mensagem ||
-        `Erro durante o registo (${resposta.status}).`,
-    );
-  }
-
-  return resultado;
 }
 
 export async function enviarFotosResidente(
   dados: EnviarFotosPayload,
 ): Promise<EnviarFotosResponse> {
-  const resposta = await fetch(
+  return pedido<EnviarFotosResponse>(
     "/api/residentes/fotos",
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
       body: JSON.stringify({
         residenteId: dados.residenteId,
         fotoPerfilBase64:
@@ -95,21 +90,9 @@ export async function enviarFotosResidente(
         fotoCartaoBase64:
           dados.fotoCartaoBase64 || "",
       }),
-      cache: "no-store",
     },
+    (status) => `Erro ao enviar as fotos (${status}).`,
   );
-
-  const resultado =
-    (await resposta.json()) as EnviarFotosResponse;
-
-  if (!resposta.ok) {
-    throw new Error(
-      resultado.mensagem ||
-        `Erro ao enviar as fotos (${resposta.status}).`,
-    );
-  }
-
-  return resultado;
 }
 
 export async function solicitarRecuperacaoPassword(
@@ -118,32 +101,14 @@ export async function solicitarRecuperacaoPassword(
   sucesso: boolean;
   mensagem?: string;
 }> {
-  const resposta = await fetch(
+  return pedido<{ sucesso: boolean; mensagem?: string }>(
     "/api/residentes/recuperar-password",
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
       body: JSON.stringify({
         email: email.trim().toLowerCase(),
       }),
-      cache: "no-store",
     },
+    () => "Erro ao solicitar recuperação.",
   );
-
-  const dados = (await resposta.json()) as {
-    sucesso: boolean;
-    mensagem?: string;
-  };
-
-  if (!resposta.ok) {
-    throw new Error(
-      dados.mensagem ||
-        "Erro ao solicitar recuperação.",
-    );
-  }
-
-  return dados;
 }
