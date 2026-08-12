@@ -1029,7 +1029,223 @@ function validarResultFingerPrint(dados = {}) {
   };
 
 }
+/*
+|--------------------------------------------------------------------------
+| Consultar estado de uma transação (Test Cases 39, 40, 41)
+|--------------------------------------------------------------------------
+|
+| "API Consultar Estado Transação.pdf" (Pacote de Desenvolvimento 4.7,
+| SISP) confirma URL de teste/produção, HTTP Basic, Content-Type
+| application/json e o corpo/resposta abaixo — mas NÃO declara
+| explicitamente o método HTTP do endpoint.
+|
+| Decisão técnica (não é uma citação do PDF): usa-se POST porque o
+| endpoint exige um corpo JSON, e um corpo não é semanticamente válido
+| num GET/HEAD (a própria Fetch API rejeita corpo nesses métodos). Se a
+| certificação SISP vier a confirmar um método diferente, esta função é
+| o único ponto a ajustar.
+|--------------------------------------------------------------------------
+*/
+
+function obterUrlConsultaEstadoSisp() {
+  /*
+   * Deliberadamente independente de NODE_ENV: o backend Hostinger corre
+   * sempre em produção, mas a certificação SISP deve continuar a usar o
+   * ambiente de teste até ser explicitamente ligado à produção. Por
+   * segurança, qualquer valor que não seja exatamente "production"
+   * (incluindo ausente/vazio) mantém-se em teste.
+   */
+  const producao =
+    String(process.env.SISP_TRANSACTION_STATUS_ENV || "")
+      .trim()
+      .toLowerCase() === "production";
+
+  const urlProducao = String(
+    process.env.SISP_TRANSACTION_STATUS_PROD_URL ||
+    "https://comerciante.vinti4.cv/pos/transaction-status"
+  ).trim();
+
+  const urlTeste = String(
+    process.env.SISP_TRANSACTION_STATUS_TEST_URL ||
+    "https://comerciante.teste.sisp.cv/pos/transaction-status"
+  ).trim();
+
+  return producao ? urlProducao : urlTeste;
+}
+
+async function consultarEstadoTransacao(merchantRef) {
+  const merchantRefLimpo = String(merchantRef || "").trim();
+
+  if (!merchantRefLimpo) {
+    throw new Error(
+      "merchantRef é obrigatório para consultar o estado da transação."
+    );
+  }
+
+  const posID = String(
+    process.env.SISP_POS_ID || ""
+  ).trim();
+
+  const posAuthCode = String(
+    process.env.SISP_POS_AUT_CODE || ""
+  ).trim();
+
+  const portalId = String(
+    process.env.SISP_PORTAL_ID || ""
+  ).trim();
+
+  const portalPassword = String(
+    process.env.SISP_PORTAL_PASSWORD || ""
+  ).trim();
+
+  const camposEmFalta = [];
+
+  if (!posID) {
+    camposEmFalta.push("SISP_POS_ID");
+  }
+
+  if (!posAuthCode) {
+    camposEmFalta.push("SISP_POS_AUT_CODE");
+  }
+
+  if (!portalId) {
+    camposEmFalta.push("SISP_PORTAL_ID");
+  }
+
+  if (!portalPassword) {
+    camposEmFalta.push("SISP_PORTAL_PASSWORD");
+  }
+
+  if (camposEmFalta.length > 0) {
+    throw new Error(
+      `Configuração da consulta de estado SISP incompleta: ${camposEmFalta.join(", ")}`
+    );
+  }
+
+  const url = obterUrlConsultaEstadoSisp();
+
+  const autorizacao = Buffer
+    .from(`${portalId}:${portalPassword}`, "utf8")
+    .toString("base64");
+
+  let resposta;
+
+  try {
+    resposta = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${autorizacao}`
+      },
+      body: JSON.stringify({
+        posID,
+        posAuthCode,
+        merchantRef: merchantRefLimpo
+      })
+    });
+  } catch (erro) {
+    console.error(
+      "Erro de rede ao consultar estado da transação SISP:",
+      {
+        merchantRef: merchantRefLimpo,
+        mensagem: erro.message
+      }
+    );
+
+    throw new Error(
+      "Não foi possível contactar o serviço de consulta de estado da SISP."
+    );
+  }
+
+  const status = resposta.status;
+  const texto = await resposta.text();
+
+  if (status === 401 || status === 403) {
+    console.error(
+      "Falha de autenticação na consulta de estado SISP:",
+      {
+        merchantRef: merchantRefLimpo,
+        status
+      }
+    );
+
+    throw new Error(
+      "Autenticação rejeitada pela SISP na consulta de estado."
+    );
+  }
+
+  if (status === 404 || status === 405) {
+    console.error(
+      "Endpoint/método de consulta de estado SISP não reconhecido:",
+      {
+        merchantRef: merchantRefLimpo,
+        status
+      }
+    );
+
+    throw new Error(
+      `A SISP respondeu ${status} — o endpoint ou o método HTTP da consulta de estado não foi reconhecido.`
+    );
+  }
+
+  let dados;
+
+  try {
+    dados = texto ? JSON.parse(texto) : null;
+  } catch {
+    console.error(
+      "Resposta não-JSON da consulta de estado SISP:",
+      {
+        merchantRef: merchantRefLimpo,
+        status
+      }
+    );
+
+    throw new Error(
+      "A SISP devolveu uma resposta inválida para a consulta de estado."
+    );
+  }
+
+  if (!dados) {
+    throw new Error(
+      "A SISP devolveu uma resposta vazia para a consulta de estado."
+    );
+  }
+
+  if (
+    dados.result === undefined &&
+    dados.transactionSuccess === undefined
+  ) {
+    console.error(
+      "Resposta da consulta de estado SISP sem os campos esperados:",
+      {
+        merchantRef: merchantRefLimpo,
+        status
+      }
+    );
+
+    throw new Error(
+      "A resposta da SISP não contém os campos esperados da consulta de estado."
+    );
+  }
+
+  return {
+    status,
+
+    result: Boolean(dados.result),
+
+    msg: String(dados.msg || ""),
+
+    transactionSuccess: Boolean(dados.transactionSuccess),
+
+    transactionStatusDescription: String(
+      dados.transactionStatusDescription || ""
+    )
+  };
+}
+
 module.exports = {
   prepararPedidoPagamento,
-  validarResultFingerPrint
+  validarResultFingerPrint,
+  consultarEstadoTransacao
 };
