@@ -344,45 +344,85 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex: 0 0 auto;
+  max-width: 300px;
+  padding: 24px 22px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #0b1f3a 0%, #081428 100%);
+  box-shadow: 0 20px 45px rgba(4, 20, 38, 0.35);
 }
 
 .cartao-qr-legenda {
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 800;
-  color: #0b2c46;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.cartao-qr-moldura {
+  padding: 14px;
+  background: #ffffff;
+  border-radius: 16px;
 }
 
 .cartao-qr-imagem,
 .cartao-qr-placeholder {
-  width: 140px;
-  height: 140px;
-  border-radius: 14px;
-}
-
-.cartao-qr-imagem {
-  border: 1px solid #e7edf2;
-  box-shadow: 0 15px 35px rgba(8, 46, 73, 0.1);
-  background: #ffffff;
+  width: 170px;
+  height: 170px;
+  border-radius: 8px;
+  display: block;
 }
 
 .cartao-qr-placeholder {
-  background: #f3f6f9;
+  background: #eef2f7;
   border: 1px dashed #d7e0e8;
 }
 
+.qr-progresso {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.qr-progresso-barra {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cyan), var(--gold));
+  transition: width 1s linear;
+}
+
+.qr-progresso-texto {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.qr-progresso-texto strong {
+  color: var(--gold);
+  font-weight: 800;
+}
+
 .cartao-qr-nota {
-  color: rgba(11, 44, 70, 0.55);
-  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  line-height: 1.5;
   text-align: center;
+  margin: 2px 0 0;
 }
 
 @media (max-width: 650px) {
   .cartao-e-qr {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cartao-qr-lateral {
+    max-width: 420px;
+    width: 100%;
+    align-self: center;
   }
 }
 
@@ -431,6 +471,10 @@
 @media (max-width: 650px) {
   .dashboard-page {
     padding: 30px 15px 55px;
+  }
+
+  .dashboard-panel {
+    padding: 20px;
   }
 
   .dashboard-boas-vindas {
@@ -562,15 +606,6 @@
 
 .tema-escuro .dashboard-card small {
   color: rgba(234, 242, 251, 0.45);
-}
-
-.tema-escuro .cartao-qr-nota {
-  color: rgba(234, 242, 251, 0.5);
-}
-
-.tema-escuro .cartao-qr-placeholder {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .tema-escuro .btn-add-foto-cartao {

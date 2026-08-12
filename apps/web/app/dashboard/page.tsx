@@ -39,6 +39,9 @@ export default function DashboardPage() {
   const [qrDataUrl, setQrDataUrl] =
     useState<string | null>(null);
 
+  const [qrSegundos, setQrSegundos] =
+    useState(30);
+
   const [tema, setTema] =
     useState<"claro" | "escuro">("claro");
 
@@ -128,15 +131,20 @@ export default function DashboardPage() {
 
       if (!cancelado) {
         setQrDataUrl(dataUrl);
+        setQrSegundos(30);
       }
     }
 
     gerarQr();
     const intervalId = setInterval(gerarQr, 30000);
+    const contadorId = setInterval(() => {
+      setQrSegundos((segundos) => (segundos > 0 ? segundos - 1 : 0));
+    }, 1000);
 
     return () => {
       cancelado = true;
       clearInterval(intervalId);
+      clearInterval(contadorId);
     };
   }, [residente]);
 
@@ -447,24 +455,40 @@ export default function DashboardPage() {
                   </small>
                 )}
               </div>
-
+              
               <div className="cartao-qr-lateral">
+
                 <span className="cartao-qr-legenda">
-                  QR dinâmico
+                  QR Seguro
                 </span>
 
-                {qrDataUrl ? (
-                  <img
-                    src={qrDataUrl}
-                    alt="QR code de identidade do residente"
-                    className="cartao-qr-imagem"
+                <div className="cartao-qr-moldura">
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="QR code de identidade do residente"
+                      className="cartao-qr-imagem"
+                    />
+                  ) : (
+                    <div className="cartao-qr-placeholder" />
+                  )}
+                </div>
+
+                <div className="qr-progresso">
+                  <div
+                    className="qr-progresso-barra"
+                    style={{ width: `${(qrSegundos / 30) * 100}%` }}
                   />
-                ) : (
-                  <div className="cartao-qr-placeholder" />
-                )}
+                </div>
+
+                <span className="qr-progresso-texto">
+                  Renova em <strong>{qrSegundos}s</strong>
+                </span>
 
                 <small className="cartao-qr-nota">
-                  Atualiza a cada 30 segundos
+                  Apresenta este código em eventos e serviços Smart
+                  City. O código renova a cada 30 segundos para
+                  proteção contra fraude.
                 </small>
               </div>
             </div>
