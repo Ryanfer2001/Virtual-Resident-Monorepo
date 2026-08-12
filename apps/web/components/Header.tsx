@@ -31,11 +31,9 @@ export default function Header({ residente }: HeaderProps) {
           <Image
             src="/img/CVR-dash.jpg"
             alt="logo="
-            width={380}
-            height={80}
-            priority
-            className="logo-img-dh"
-          />
+            className="logo-img"
+            width={280}
+            height={80}/>
         </Link>
 
 

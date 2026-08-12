@@ -71,7 +71,7 @@ const subPlanosPorPacote = Object.fromEntries(
       {/* ==================== HEADER ==================== */}
       <header>
         <a href="#top" className="logo">
-          <img src="/img/CVR-logo.jpg" alt="NOSZONA Smart" className="logo-img" />
+          <img src="/img/CVR-logo.jpg" alt="Virtual resident" className="logo-img" />
         </a>
 
 
@@ -83,7 +83,7 @@ const subPlanosPorPacote = Object.fromEntries(
             </>
           ) : (
             <>
-              <span className="user-greeting">Olá, {user.nome?.split(' ')[0]}</span>
+
               <button className="btn btn-ghost" onClick={() => router.push("/dashboard")}>Minha conta</button>
               <button className="btn btn-ghost" onClick={() => { terminarSessao(); setUser(null); router.push("/"); }}>Sair</button>
             </>

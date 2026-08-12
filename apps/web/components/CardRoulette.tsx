@@ -103,7 +103,10 @@ export default function CardRoulette({ onSelect }: CardRouletteProps) {
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       const width = entries[0].contentRect.width;
-      setStageScale(Math.min(1, width / REFERENCE_WIDTH));
+      const ratio = Math.min(1, width / REFERENCE_WIDTH);
+      // Curva <1 reforça o ratio só quando <1 (mobile); em 1 (desktop, contentor
+      // já limitado a REFERENCE_WIDTH) o resultado mantém-se exatamente 1.
+      setStageScale(Math.pow(ratio, 0.75));
     });
     ro.observe(el);
     return () => ro.disconnect();
