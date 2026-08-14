@@ -46,6 +46,33 @@ async function resumo(req, res) {
       LIMIT 5`
     );
 
+    const [distribuicaoPacotes] = await pool.query(
+      `SELECT pacote, COUNT(*) AS total
+       FROM residentes
+       GROUP BY pacote
+       ORDER BY total DESC`
+    );
+
+    const anoAtual = new Date().getFullYear();
+
+    const [pagamentosPorMes] = await pool.query(
+      `SELECT MONTH(confirmadoEm) AS mes, SUM(valor) AS total
+       FROM pagamentos
+       WHERE estado = 'concluido'
+         AND YEAR(confirmadoEm) = ?
+       GROUP BY mes`,
+      [anoAtual]
+    );
+
+    const somaPorMes = new Map(
+      pagamentosPorMes.map((linha) => [Number(linha.mes), Number(linha.total || 0)])
+    );
+
+    const receitaMensal = Array.from({ length: 12 }, (_valor, indice) => ({
+      mes: `${anoAtual}-${String(indice + 1).padStart(2, "0")}`,
+      total: somaPorMes.get(indice + 1) || 0
+    }));
+
     return res.status(200).json({
       sucesso: true,
       resumo: {
@@ -57,7 +84,12 @@ async function resumo(req, res) {
         somaSwipes: Number(contas.somaSwipes || 0),
         fotosPendentes: Number(fotos.fotosPendentes || 0),
         pedidosCartaoPendentes: Number(pedidosCartao.total || 0),
-        registosRecentes: recentes
+        registosRecentes: recentes,
+        distribuicaoPacotes: distribuicaoPacotes.map((linha) => ({
+          pacote: linha.pacote || "Sem pacote",
+          total: Number(linha.total || 0)
+        })),
+        receitaMensal
       }
     });
   } catch (erro) {

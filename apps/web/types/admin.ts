@@ -38,6 +38,14 @@ export interface ResumoDashboard {
     estado: EstadoResidente;
     criadoEm: string;
   }>;
+  distribuicaoPacotes: Array<{
+    pacote: string;
+    total: number;
+  }>;
+  receitaMensal: Array<{
+    mes: string;
+    total: number;
+  }>;
 }
 
 export interface ResidenteListagem {
