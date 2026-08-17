@@ -143,7 +143,7 @@ export default function AdminDashboardPage() {
   const iniciaisAdmin = (admin?.username || "AD").slice(0, 2).toUpperCase();
 
   return (
-    <div className="admin-shell">
+    <div className="admin-shell notranslate" translate="no">
       <aside className="admin-sidebar">
         <div className="admin-sidebar-topo">
           <span className="admin-eyebrow">Cabo Verde Virtual Resident</span>

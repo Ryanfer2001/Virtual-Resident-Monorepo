@@ -771,6 +771,160 @@ header {
   flex-wrap: wrap; position: relative;
 }
 
+/* ============ HERO JOURNEY STRIP ============ */
+.hero-journey {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin: 4px 0 34px;
+  animation: fadeUp 0.6s 0.25s ease both;
+}
+.hero-journey span {
+  font-family: 'Clash Display', sans-serif;
+  font-size: 14px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  background: linear-gradient(135deg, var(--cyan), var(--gold-light));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero-journey-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  flex-shrink: 0;
+}
+
+/* ============ DARK SECTION HEADERS ============ */
+.section.bg-navy .section-header h2 { color: var(--white); }
+.section.bg-navy .section-header p { color: rgba(255,255,255,0.62); }
+
+/* ============ WELCOME SECTION ============ */
+.welcome-lead { max-width: 720px; margin: 0 auto 40px; text-align: center; }
+.welcome-lead p {
+  font-size: 17px; line-height: 1.85; font-weight: 300;
+  color: rgba(255,255,255,0.60); margin-bottom: 20px;
+}
+.welcome-highlight {
+  font-size: 19px !important; font-weight: 500 !important;
+  color: rgba(255,255,255,0.85) !important;
+}
+.welcome-points {
+  max-width: 640px; margin: 0 auto 44px;
+  display: flex; flex-direction: column; gap: 16px;
+  text-align: center;
+}
+.welcome-points span {
+  display: block;
+  font-family: 'Clash Display', sans-serif;
+  font-size: clamp(18px, 2.6vw, 24px); font-weight: 600;
+  color: var(--white); opacity: 0.9;
+}
+.welcome-points span:nth-child(2n) { color: var(--gold-light); opacity: 1; }
+.welcome-closing {
+  text-align: center; font-size: 20px; line-height: 1.7;
+  color: rgba(255,255,255,0.55); font-weight: 300;
+}
+.welcome-closing strong {
+  display: inline-block; margin-top: 6px;
+  font-family: 'Clash Display', sans-serif;
+  font-size: clamp(22px, 3.4vw, 32px); font-weight: 700;
+  background: linear-gradient(135deg, var(--cyan), var(--gold));
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ============ CHIP GRID & PULL QUOTE ============ */
+.chip-grid {
+  max-width: 980px; margin: 0 auto 48px;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
+}
+.chip {
+  display: inline-flex; align-items: center;
+  padding: 11px 20px; border-radius: 999px;
+  background: var(--off); border: 1.5px solid var(--border-dark);
+  font-size: 14px; font-weight: 500; color: var(--text);
+  transition: all 0.25s ease;
+}
+.chip:hover {
+  background: rgba(0,195,227,0.10); border-color: rgba(0,195,227,0.35);
+  color: var(--blue); transform: translateY(-2px);
+}
+.pull-quote {
+  max-width: 760px; margin: auto; text-align: left;
+  border-left: 3px solid var(--gold); padding-left: 28px;
+}
+.pull-quote p {
+  font-family: 'Clash Display', sans-serif;
+  font-size: clamp(22px, 3.4vw, 30px); font-weight: 700;
+  color: var(--text); letter-spacing: -0.5px; line-height: 1.25; margin-bottom: 14px;
+}
+.pull-quote span {
+  font-size: 15px; color: var(--muted); line-height: 1.7; font-weight: 300;
+}
+
+/* ============ JOURNEY TIMELINE ============ */
+.journey { max-width: 760px; margin: 0 auto 40px; position: relative; }
+.journey::before {
+  content: '';
+  position: absolute; left: 27px; top: 8px; bottom: 8px; width: 2px;
+  background: linear-gradient(var(--cyan), var(--gold));
+  opacity: 0.35;
+}
+.journey-step { position: relative; padding-left: 78px; margin-bottom: 34px; }
+.journey-step:last-child { margin-bottom: 0; }
+.journey-num {
+  position: absolute; left: 0; top: 0;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--blue));
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Clash Display', sans-serif; font-weight: 700; font-size: 17px;
+  color: var(--navy); box-shadow: 0 10px 24px rgba(0,195,227,0.35);
+  flex-shrink: 0;
+}
+.journey-step h3 {
+  font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 700;
+  color: var(--text); margin-bottom: 6px; padding-top: 12px;
+}
+.journey-step p { font-size: 14.5px; color: var(--muted); line-height: 1.65; font-weight: 300; }
+.journey-closing {
+  text-align: center; font-size: 16px; color: var(--muted);
+  font-weight: 500; letter-spacing: 0.2px;
+}
+
+/* ============ INFO GRID (Why Cabo Verde / Benefits) ============ */
+.info-grid {
+  max-width: 1200px; margin: auto;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+.info-grid-compact { grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.info-card {
+  background: var(--card-bg); border: 1px solid var(--border-dark);
+  border-radius: var(--rad-lg); padding: 30px 26px;
+  transition: all 0.3s ease;
+}
+.info-card:hover {
+  transform: translateY(-6px); box-shadow: var(--shadow);
+  border-color: rgba(0,195,227,0.3);
+}
+.info-icon {
+  width: 56px; height: 56px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; margin-bottom: 18px;
+}
+.info-card h3 {
+  font-family: 'Clash Display', sans-serif; font-size: 18px; font-weight: 700;
+  color: var(--text); margin-bottom: 10px; letter-spacing: -0.3px;
+}
+.info-card p { font-size: 14px; color: var(--muted); line-height: 1.65; font-weight: 300; }
+.info-card-dark {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  padding: 26px 22px;
+}
+.info-card-dark:hover { background: rgba(0,195,227,0.08); border-color: rgba(0,195,227,0.25); }
+.info-card-dark h3 { color: var(--white); font-size: 16px; }
+.info-card-dark p { color: rgba(255,255,255,0.5); font-size: 13.5px; }
+.info-icon-dark {
+  background: rgba(0,195,227,0.15); font-size: 22px;
+  width: 48px; height: 48px; margin-bottom: 14px;
+}
+
 /* ============ FORMS ============ */
 .form-section {
   display: none;
@@ -1047,6 +1201,8 @@ footer p strong { color: rgba(255,255,255,0.60); font-weight: 500; }
   .dash-grid { grid-template-columns: 1fr; }
   .nav-links { display: none; }
   .user-greeting { display: none; }
+  .info-grid { grid-template-columns: repeat(2, 1fr); }
+  .info-grid-compact { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
   header { padding: 0 5%; }
@@ -1059,9 +1215,16 @@ footer p strong { color: rgba(255,255,255,0.60); font-weight: 500; }
   .form-body, .form-panel-top { padding: 24px 22px; }
   .hero-stats { gap: 16px; }
   .hero-stat strong { font-size: 22px; }
+  .hero-journey { gap: 10px; }
+  .hero-journey span { font-size: 12px; letter-spacing: 1.2px; }
   .trust-inner { grid-template-columns: 1fr; }
   .dash-body { padding: 22px; }
   .dash-header { padding: 22px 22px; }
+  .info-grid, .info-grid-compact { grid-template-columns: 1fr; }
+  .journey-step { padding-left: 66px; }
+  .journey-num { width: 46px; height: 46px; font-size: 14px; }
+  .journey::before { left: 22px; }
+  .pull-quote { padding-left: 20px; }
 }
 /* =====================================================
    FOTOS.CSS - NOSZONA Smart

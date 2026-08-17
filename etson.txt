@@ -1,0 +1,142 @@
+O QUE O ADMIN (VISÃO GERAL) MOSTRA NESTE MOMENTO
+==================================================
+
+Sidebar (esquerda)
+- Título "Cabo Verde Virtual Resident"
+- Bloco de conta: avatar com iniciais, nome do admin, "Sessão ADM"
+- Secções: Visão geral, Residentes, Fotografias, Cartões, Auditoria
+- Botão "Terminar sessão"
+
+Cabeçalho da página
+- Eyebrow "Painel"
+- Título "Visão geral"
+- Descrição "Resumo da plataforma e da atividade recente dos residentes."
+
+Conteúdo da Visão geral
+1. Cartão hero (grande, canto superior esquerdo)
+   - Título "Saldo total"
+   - Valor grande: soma do saldo de todos os residentes (em CVE)
+   - Legenda: "Receita mensal recebida ao longo do ano"
+   - Gráfico de linha de fundo: receita mensal real do ano corrente,
+     somada a partir da tabela "pagamentos" (só pagamentos com
+     estado = concluido), com os 12 meses (jan a dez) e 0 nos meses
+     sem receita
+**O gráfico não aparece, deve aparecer mesmo estadnto tudo em 00**   
+
+2. Cartão "Contas pendentes" (ao lado do hero)
+   - Ícone de relógio
+   - Número de contas com estado pendente
+   - Legenda "Aguardam ativação"
+
+3. Linha de 3 cartões (por baixo dos dois primeiros)
+   - "Swipes totais" (ícone raio) — soma de swipes de todas as contas
+   - "Fotografias pendentes" (ícone imagem) — fotos por rever
+   - "Pedidos de cartão pendentes" (ícone cartão) — pedidos por aprovar
+
+4. Cartão donut "Virtual Residents" (coluna direita, altura toda)
+  ** O componente deve ter o formato de uma laranja (flor) vista de cima, composta por vários gomos dispostos circularmente. Não cries um gráfico donut tradicional com divisões triangulares rígidas. Cada gomo deve parecer uma peça individual, orgânica e arredondada, semelhante a um gomo de laranja:
+
+Formato largo na extremidade exterior;
+Formato mais estreito junto ao centro;
+Cantos bastante arredondados;
+Pequenos espaços entre os gomos;
+Abertura circular no centro;
+Organização radial completa, formando uma circunferência;
+Aparência moderna, limpa e ligeiramente tridimensional;
+Sombra suave para separar visualmente os gomos.
+
+Cada gomo deve representar um tipo de residente existente no projeto, por exemplo:
+
+Visitor;
+Diaspora;
+Business;
+Student;
+Admin;
+Outros tipos existentes nos dados do sistema.
+
+Ignora completamente os números presentes na imagem de referência. O tamanho dos gomos não deve depender da quantidade de residentes. Todos devem possuir dimensões visualmente equilibradas. A quantidade de gomos deve ser determinada pelos tipos de residente disponíveis no sistema, sem duplicar categorias.
+
+Dentro de cada gomo, apresenta:
+
+Nome do tipo de residente;
+Um ícone simples relacionado com a categoria;
+Cor própria para facilitar a identificação.
+
+Utiliza a identidade visual do Cabo Verde Virtual Resident, com combinações de azul-marinho, azul-ciano, verde, branco e dourado. Mantém contraste suficiente para que os nomes sejam facilmente legíveis.
+
+Interações:
+
+Ao passar o cursor sobre um gomo, ele deve deslocar-se ligeiramente para fora;
+O gomo selecionado deve ficar mais iluminado e destacado;
+Ao clicar, deve ser possível filtrar ou apresentar informações daquele tipo de residente;
+A animação deve ser suave e não deve alterar a posição geral do gráfico;
+Respeita prefers-reduced-motion.
+
+Responsividade:
+
+No desktop, mostra a laranja completa;
+Em tablets, reduz proporcionalmente sem cortar os gomos;
+No telemóvel, mantém o formato circular dentro da largura disponível;
+Os textos devem diminuir ou ser apresentados através de tooltip quando não houver espaço;
+Nenhuma parte pode provocar rolagem horizontal.
+
+Antes de implementar, identifica o componente correto do dashboard administrativo onde esse visual deve aparecer. Reutiliza os tipos e dados já existentes no projeto. Não alteres o backend, as rotas, a autenticação nem outras funcionalidades. Evita código duplicado e mantém o padrão atual de Next.js, React e CSS utilizado no repositório.**
+
+5. Tabela "Registos recentes" (por baixo, largura toda)
+   - Colunas: Nome, Utilizador, Plano, Estado (badge colorido), Criado em
+   - Mostra os 5 registos mais recentes
+
+Nota técnica: os dados de "distribuição por pacote" e "receita mensal"
+vêm de alterações que fiz no controller da API local
+(apps/api/src/controllers/adminDashboardController.js). O
+apps/web/.env.local aponta para uma API remota
+(darkgrey-meerkat-287167.hostingersite.com), por isso estes dois
+elementos só aparecem com dados reais depois de fazeres deploy dessa
+API atualizada.
+
+
+10 PERGUNTAS PARA PERCEBER MELHOR O QUE QUERES
+==================================================
+
+1. A imagem de referência que mandaste é para copiar ao pormenor
+   (mesmas proporções, mesmas cores, "flor" de 8 pétalas no donut),
+   ou é só inspiração geral de estilo e podemos adaptar à nossa
+   estrutura de dados real?
+
+2. O número grande do cartão hero deve continuar a ser "Saldo total"
+   (soma das carteiras dos residentes), ou deve passar a ser a
+   "Receita do ano" (soma da tabela pagamentos), já que agora o
+   gráfico por trás mostra receita mensal?
+
+3. No donut "Virtual Residents", queres os pacotes agrupados em 4
+   categorias (Visitor / Diaspora / Business / Student), ou um
+   segmento por cada plano específico (ex: "Business Elite",
+   "Diaspora Completo", etc., tal como aparecem na tabela)?
+
+4. As cores do donut e do gráfico devem seguir o verde da marca
+   (que já é usado nos botões/badges), ou preferes um conjunto de
+   cores diferente, tipo as da imagem de referência?
+
+5. Queres interatividade nos gráficos (tooltip ao passar o rato com
+   o valor exato de cada mês/fatia), ou mantemos só visual, sem
+   interação?
+
+6. Confirmas que o deploy da API remota (Hostinger) fica do teu lado,
+   ou queres que eu prepare algo (script de migração, instruções) para
+   facilitar esse deploy?
+
+7. Para telemóvel, há algum tamanho de ecrã específico que uses para
+   testar (ex: iPhone SE, um Android específico), ou testo nos
+   breakpoints standard (900px, 700px, 480px)?
+
+8. Os cartões "Total de residentes" e "Contas ativas/suspensas" que
+   existiam antes foram removidos da Visão geral (ficaram implícitos
+   no donut). Queres que voltem a aparecer em algum lado, ou está bem
+   assim?
+
+9. A tabela "Registos recentes" deve continuar só com os últimos 5,
+   ou precisas de mais linhas, paginação, ou outras colunas?
+
+10. Este pedido de "ficar parecido com a imagem" aplica-se só à Visão
+    geral, ou também queres alinhar visualmente as outras secções
+    (Residentes, Fotografias, Cartões, Auditoria) ao mesmo estilo?
