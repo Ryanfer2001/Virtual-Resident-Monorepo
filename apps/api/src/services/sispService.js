@@ -89,6 +89,12 @@ function obterConfiguracaoSisp() {
     );
   }
 
+  if (configuracao.currency !== "132") {
+    throw new Error(
+      "A moeda SISP deve ser 132 para Escudos Cabo-Verdianos."
+    );
+  }
+
   return configuracao;
 }
 
@@ -581,23 +587,6 @@ function prepararPedidoPagamento(dados = {}) {
   const amount =
     String(valor);
 
-  /*
-   * Moeda efetiva: por defeito CVE (132), vindo de config.currency.
-   * Só é substituída quando o pedido indica explicitamente outra
-   * moeda (Test Case 06 — Compra 3DS Server-DCC).
-   */
-  const currency = String(
-    dados.currency ||
-    dados.moeda ||
-    config.currency
-  ).trim();
-
-  if (!/^\d{3}$/.test(currency)) {
-    throw new Error(
-      "A moeda deve ser um código numérico ISO de 3 dígitos."
-    );
-  }
-
   const email = String(
     dados.email ||
     config.defaultEmail
@@ -679,7 +668,8 @@ function prepararPedidoPagamento(dados = {}) {
       posID:
         config.posID,
 
-      currency,
+      currency:
+        config.currency,
 
       transactionCode:
         config.transactionCode
@@ -704,7 +694,8 @@ function prepararPedidoPagamento(dados = {}) {
 
     amount,
 
-    currency,
+    currency:
+      config.currency,
 
     is3DSec: "1",
 
