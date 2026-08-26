@@ -502,6 +502,10 @@ async function processarRetorno(req, res) {
       ""
     ).trim();
 
+    const temCodigoErro =
+      Boolean(codigoErro) &&
+      codigoErro !== "00";
+
     const detalheErro = String(
       dados.merchantRespErrorDetail ||
       ""
@@ -643,7 +647,7 @@ async function processarRetorno(req, res) {
     ];
 
     const semErros =
-      !codigoErro &&
+      !temCodigoErro &&
       !descricaoErro &&
       !detalheErro;
 
@@ -657,7 +661,7 @@ async function processarRetorno(req, res) {
 
     const pagamentoFalhado =
       messageType === "6" ||
-      Boolean(codigoErro) ||
+      temCodigoErro ||
       Boolean(descricaoErro) ||
       Boolean(detalheErro);
 
