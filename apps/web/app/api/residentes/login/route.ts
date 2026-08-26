@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
@@ -6,6 +8,11 @@ import type {
   Residente,
 } from "@/types/residente";
 import { encaminharParaNodeRed } from "@/lib/node-red-proxy";
+import {
+  RESIDENTE_COOKIE_MAX_AGE_SEGUNDOS,
+  RESIDENTE_COOKIE_NAME,
+  RESIDENTE_CSRF_COOKIE_NAME,
+} from "@/lib/residente-session";
 
 const NODE_RED_URL = (
   process.env.NODE_RED_URL ||
@@ -122,16 +129,41 @@ export async function POST(
       mensagem:
         dados.mensagem ||
         "Login feito com sucesso",
-      token,
       residente,
     };
 
-    return NextResponse.json(
+    const respostaHttp = NextResponse.json(
       resposta,
       {
         status: 200,
       },
     );
+
+    // O token nunca é devolvido no corpo da resposta — só existe num
+    // cookie httpOnly, inacessível a JavaScript (mesmo em caso de XSS).
+    respostaHttp.cookies.set({
+      name: RESIDENTE_COOKIE_NAME,
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: RESIDENTE_COOKIE_MAX_AGE_SEGUNDOS,
+    });
+
+    // Cookie CSRF (double-submit), legível por JavaScript de propósito —
+    // mesmo padrão usado na sessão administrativa (ver lib/admin-session.ts).
+    respostaHttp.cookies.set({
+      name: RESIDENTE_CSRF_COOKIE_NAME,
+      value: randomBytes(32).toString("hex"),
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: RESIDENTE_COOKIE_MAX_AGE_SEGUNDOS,
+    });
+
+    return respostaHttp;
   } catch (error) {
     console.error(
       "Erro no login:",

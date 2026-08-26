@@ -85,7 +85,7 @@ const subPlanosPorPacote = Object.fromEntries(
             <>
 
               <button className="btn btn-ghost" onClick={() => router.push("/dashboard")}>Minha conta</button>
-              <button className="btn btn-ghost" onClick={() => { terminarSessao(); setUser(null); router.push("/"); }}>Sair</button>
+              <button className="btn btn-ghost" onClick={async () => { await terminarSessao(); setUser(null); router.push("/"); }}>Sair</button>
             </>
           )}
         </div>

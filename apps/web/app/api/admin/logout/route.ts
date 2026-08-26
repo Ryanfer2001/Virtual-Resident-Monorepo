@@ -1,13 +1,33 @@
 import { NextResponse } from "next/server";
 
-import { ADMIN_API_BASE_URL, ADMIN_COOKIE_NAME } from "@/lib/admin-session";
+import {
+  ADMIN_API_BASE_URL,
+  ADMIN_COOKIE_NAME,
+  ADMIN_CSRF_COOKIE_NAME,
+  ADMIN_CSRF_HEADER_NAME,
+} from "@/lib/admin-session";
 
 export async function POST(request: Request) {
-  const token = request.headers
-    .get("cookie")
-    ?.split("; ")
+  const cookiesRecebidos = request.headers.get("cookie") || "";
+
+  const token = cookiesRecebidos
+    .split("; ")
     .find((linha) => linha.startsWith(`${ADMIN_COOKIE_NAME}=`))
     ?.split("=")[1];
+
+  const csrfCookie = cookiesRecebidos
+    .split("; ")
+    .find((linha) => linha.startsWith(`${ADMIN_CSRF_COOKIE_NAME}=`))
+    ?.split("=")[1];
+
+  const csrfHeader = request.headers.get(ADMIN_CSRF_HEADER_NAME);
+
+  if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+    return NextResponse.json(
+      { sucesso: false, mensagem: "Token CSRF inválido ou em falta." },
+      { status: 403, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   if (token) {
     try {
@@ -28,6 +48,7 @@ export async function POST(request: Request) {
   );
 
   resposta.cookies.delete(ADMIN_COOKIE_NAME);
+  resposta.cookies.delete(ADMIN_CSRF_COOKIE_NAME);
 
   return resposta;
 }

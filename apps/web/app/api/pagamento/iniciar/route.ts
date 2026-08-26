@@ -1,3 +1,12 @@
+import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
+
+import {
+  RESIDENTE_COOKIE_NAME,
+  RESIDENTE_CSRF_COOKIE_NAME,
+  RESIDENTE_CSRF_HEADER_NAME,
+} from "@/lib/residente-session";
+
 const producao =
   process.env.VERCEL_ENV === "production" ||
   process.env.NODE_ENV === "production";
@@ -6,6 +15,51 @@ const BACKEND_API_URL = (
   process.env.BACKEND_API_URL ||
   (producao ? "" : "http://localhost:3002")
 ).replace(/\/+$/, "");
+
+const JWT_SECRET = process.env.JWT_SECRET;
+
+/*
+ * O residenteId nunca é aceite do formulário — vem sempre do token do
+ * cookie httpOnly da sessão, nunca de algo que o cliente possa forjar.
+ * Sem isto, qualquer pessoa podia iniciar um pagamento Vinti4 associado à
+ * conta de outro residente só mudando o campo oculto (ou, antes da
+ * migração para cookie, só lendo o token de outra aba/localStorage).
+ * Por ser um cookie ambiente, exige-se também o par CSRF (double-submit).
+ */
+async function residenteIdAutenticado(
+  request: Request,
+): Promise<{ id: string; token: string } | null> {
+  if (!JWT_SECRET) {
+    return null;
+  }
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get(RESIDENTE_COOKIE_NAME)?.value;
+
+  if (!token) {
+    return null;
+  }
+
+  const csrfCookie = cookieStore.get(RESIDENTE_CSRF_COOKIE_NAME)?.value;
+  const csrfHeader = request.headers.get(RESIDENTE_CSRF_HEADER_NAME);
+
+  if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+    return null;
+  }
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as {
+      id?: string;
+      sub?: string;
+    };
+
+    const id = payload.id || payload.sub || "";
+
+    return id ? { id: String(id), token } : null;
+  } catch {
+    return null;
+  }
+}
 
 function paginaErro(mensagem: string) {
   return `<!DOCTYPE html>
@@ -69,19 +123,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const formData = await request.formData();
+  const autenticacao = await residenteIdAutenticado(request);
 
-  const residenteId =
-    typeof formData.get("residenteId") === "string"
-      ? (formData.get("residenteId") as string).trim()
-      : "";
-
-  if (!residenteId) {
+  if (!autenticacao) {
     return respostaHtml(
-      paginaErro("Residente não identificado."),
-      400,
+      paginaErro("Sessão inválida ou expirada. Inicia sessão novamente."),
+      401,
     );
   }
+
+  const { id: residenteId, token } = autenticacao;
+
+  const formData = await request.formData();
 
   const valorTexto = formData.get("valor");
 
@@ -101,13 +154,32 @@ export async function POST(request: Request) {
     );
   }
 
+  // Mesmo teto aplicado em apps/api/src/services/sispService.js — repetido
+  // aqui para rejeitar cedo, sem sequer contactar o backend de pagamento.
+  const VALOR_MAXIMO_CVE = 500000;
+
+  if (valor > VALOR_MAXIMO_CVE) {
+    return respostaHtml(
+      paginaErro(
+        `O valor da recarga não pode exceder ${VALOR_MAXIMO_CVE} CVE.`,
+      ),
+      400,
+    );
+  }
+
   const params = new URLSearchParams();
 
   for (const [chave, valorCampo] of formData.entries()) {
+    if (chave === "residenteId") {
+      continue;
+    }
+
     if (typeof valorCampo === "string") {
       params.append(chave, valorCampo);
     }
   }
+
+  params.set("residenteId", residenteId);
 
   let resposta: Response;
 
@@ -118,6 +190,7 @@ export async function POST(request: Request) {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Bearer ${token}`,
         },
         body: params.toString(),
         cache: "no-store",

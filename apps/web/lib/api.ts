@@ -5,6 +5,7 @@ import type {
   RegistoData,
   RegistoResponse,
 } from "@/types/residente";
+import { obterCabecalhoCsrf } from "@/lib/auth";
 
 /*
  * Wrapper partilhado pelos pedidos a /api/residentes/* — mesmo padrão do
@@ -77,11 +78,25 @@ export async function criarResidente(
 
 export async function enviarFotosResidente(
   dados: EnviarFotosPayload,
+  tokenSessaoRegisto?: string,
 ): Promise<EnviarFotosResponse> {
+  // No registo (antes de existir sessão) usa-se o token de curta duração
+  // devolvido por criarResidente, explícito no cabeçalho Authorization.
+  // Depois do login, a sessão vive no cookie httpOnly — só é preciso
+  // provar, com o cabeçalho CSRF, que o pedido partiu do nosso site.
+  const cabecalhos: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    ...(tokenSessaoRegisto
+      ? { Authorization: `Bearer ${tokenSessaoRegisto}` }
+      : obterCabecalhoCsrf()),
+  };
+
   return pedido<EnviarFotosResponse>(
     "/api/residentes/fotos",
     {
       method: "POST",
+      headers: cabecalhos,
       body: JSON.stringify({
         residenteId: dados.residenteId,
         fotoPerfilBase64:

@@ -99,15 +99,12 @@ async function atualizarFotos(req, res) {
   try {
     const dados = req.body || {};
 
-    const id =
-      dados.id ||
-      dados.residenteId ||
-      dados.residente_id;
+    const id = req.utilizador?.id;
 
     if (!id) {
-      return res.status(400).json({
+      return res.status(401).json({
         sucesso: false,
-        mensagem: "ID do residente é obrigatório."
+        mensagem: "Sessão inválida."
       });
     }
 
@@ -288,17 +285,12 @@ async function atualizarFotos(req, res) {
 
 async function solicitarCartao(req, res) {
   try {
-    const id =
-      req.usuario?.id ||
-      req.user?.id ||
-      req.body?.id ||
-      req.body?.residenteId ||
-      req.params?.id;
+    const id = req.utilizador?.id;
 
     if (!id) {
-      return res.status(400).json({
+      return res.status(401).json({
         sucesso: false,
-        mensagem: "ID do residente é obrigatório."
+        mensagem: "Sessão inválida."
       });
     }
 
@@ -360,17 +352,17 @@ async function solicitarCartao(req, res) {
 
 async function consultarPedidoCartao(req, res) {
   try {
-    const id =
-      req.usuario?.id ||
-      req.user?.id ||
-      req.params?.id ||
-      req.query?.id ||
-      req.query?.residenteId;
+    /*
+     * O id nunca vem de req.params/req.query (controlados pelo cliente) —
+     * um residente autenticado só pode consultar o SEU PRÓPRIO pedido de
+     * cartão, nunca o de outro id à escolha (era esta a falha de IDOR).
+     */
+    const id = req.utilizador?.id;
 
     if (!id) {
-      return res.status(400).json({
+      return res.status(401).json({
         sucesso: false,
-        mensagem: "ID do residente é obrigatório."
+        mensagem: "Sessão inválida."
       });
     }
 
@@ -407,17 +399,12 @@ async function consultarPedidoCartao(req, res) {
 
 async function cancelarPedidoCartao(req, res) {
   try {
-    const id =
-      req.usuario?.id ||
-      req.user?.id ||
-      req.body?.id ||
-      req.body?.residenteId ||
-      req.params?.id;
+    const id = req.utilizador?.id;
 
     if (!id) {
-      return res.status(400).json({
+      return res.status(401).json({
         sucesso: false,
-        mensagem: "ID do residente é obrigatório."
+        mensagem: "Sessão inválida."
       });
     }
 
@@ -904,12 +891,12 @@ async function validarQRResidenteLegado(req, res) {
 
 async function solicitarCartaoLegado(req, res) {
   try {
-    const id = req.body?.id;
+    const id = req.utilizador?.id;
 
     if (!id) {
-      return res.status(400).json({
+      return res.status(401).json({
         sucesso: false,
-        mensagem: "ID do residente em falta."
+        mensagem: "Sessão inválida."
       });
     }
 

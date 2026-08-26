@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 import { NextResponse } from "next/server";
 
 import type { LoginAdminResponse } from "@/types/admin";
@@ -6,6 +8,7 @@ import {
   ADMIN_API_BASE_URL,
   ADMIN_COOKIE_MAX_AGE_SEGUNDOS,
   ADMIN_COOKIE_NAME,
+  ADMIN_CSRF_COOKIE_NAME,
 } from "@/lib/admin-session";
 
 export async function POST(request: Request) {
@@ -61,6 +64,20 @@ export async function POST(request: Request) {
       name: ADMIN_COOKIE_NAME,
       value: dados.token,
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: ADMIN_COOKIE_MAX_AGE_SEGUNDOS,
+    });
+
+    // Cookie CSRF (double-submit): legível por JavaScript de propósito, para
+    // o frontend o reenviar como cabeçalho em cada pedido de escrita. Por si
+    // só não autentica nada — só prova que quem fez o pedido conseguiu ler
+    // um cookie do nosso site, o que um site terceiro nunca consegue.
+    resposta.cookies.set({
+      name: ADMIN_CSRF_COOKIE_NAME,
+      value: randomBytes(32).toString("hex"),
+      httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",

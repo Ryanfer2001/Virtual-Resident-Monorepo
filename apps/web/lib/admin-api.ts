@@ -13,11 +13,28 @@ import type {
   TipoFotoRevisao,
 } from "@/types/admin";
 
+import {
+  ADMIN_CSRF_COOKIE_NAME,
+  ADMIN_CSRF_HEADER_NAME,
+} from "@/lib/admin-session";
+
 /*
  * Todas as chamadas passam pelo proxy do próprio Next.js
  * (app/api/admin/...), nunca diretamente para o apps/api — o cookie
  * HttpOnly da sessão administrativa nunca é lido nem manuseado aqui.
  */
+
+function obterCookieCsrf(): string {
+  if (typeof document === "undefined") {
+    return "";
+  }
+
+  const linha = document.cookie
+    .split("; ")
+    .find((item) => item.startsWith(`${ADMIN_CSRF_COOKIE_NAME}=`));
+
+  return linha ? decodeURIComponent(linha.split("=")[1]) : "";
+}
 
 async function pedido<T>(
   caminho: string,
@@ -29,6 +46,7 @@ async function pedido<T>(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      [ADMIN_CSRF_HEADER_NAME]: obterCookieCsrf(),
       ...(opcoes.headers || {}),
     },
     ...opcoes,

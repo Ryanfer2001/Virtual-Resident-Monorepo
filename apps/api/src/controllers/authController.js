@@ -1,26 +1,119 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 
 const residenteModel = require("../models/residenteModel");
+const { obterIp } = require("../utils/request");
+
+/*
+ * Limitador simples em memória (por IP e por username), mesmo espírito do
+ * limitador por IP já usado no login administrativo (adminAuthController).
+ * Não sobrevive a reinícios do processo nem é partilhado entre instâncias
+ * — é uma primeira barreira contra força bruta, não uma solução completa.
+ * Ao contrário do admin, os residentes não têm ainda colunas de bloqueio
+ * persistente na base de dados.
+ */
+const JANELA_LIMITE_MS = 15 * 60 * 1000;
+const LIMITE_PEDIDOS_POR_IP = 30;
+const LIMITE_TENTATIVAS_POR_USERNAME = 8;
+const tentativasPorIp = new Map();
+const tentativasPorUsername = new Map();
+
+function registoDentroDaJanela(mapa, chave) {
+  const agora = Date.now();
+  const registo = mapa.get(chave) || [];
+  const dentroDaJanela = registo.filter(
+    (timestamp) => agora - timestamp < JANELA_LIMITE_MS
+  );
+
+  mapa.set(chave, dentroDaJanela);
+  return dentroDaJanela;
+}
+
+function limiteExcedido(ip, usernameLimpo) {
+  const registoIp = registoDentroDaJanela(tentativasPorIp, ip);
+
+  if (registoIp.length >= LIMITE_PEDIDOS_POR_IP) {
+    return true;
+  }
+
+  const registoUsername = registoDentroDaJanela(
+    tentativasPorUsername,
+    usernameLimpo.toLowerCase()
+  );
+
+  return registoUsername.length >= LIMITE_TENTATIVAS_POR_USERNAME;
+}
+
+function registarTentativaLogin(ip, usernameLimpo) {
+  registoDentroDaJanela(tentativasPorIp, ip).push(Date.now());
+  registoDentroDaJanela(
+    tentativasPorUsername,
+    usernameLimpo.toLowerCase()
+  ).push(Date.now());
+}
 
 /*
  * Compatibilidade temporária com residentes antigos, cujas passwords
  * ainda estão guardadas em texto simples (identificadas pela ausência
- * do prefixo bcrypt $2a$/$2b$/$2y$).
+ * do prefixo bcrypt $2a$/$2b$/$2y$). A comparação usa timingSafeEqual
+ * (em vez de ===) para não revelar, pelo tempo de resposta, quantos
+ * caracteres da password estão corretos.
  */
+function passwordUsaBcrypt(valor) {
+  return (
+    valor.startsWith("$2a$") ||
+    valor.startsWith("$2b$") ||
+    valor.startsWith("$2y$")
+  );
+}
+
+function compararTextoSimplesSeguro(a, b) {
+  const bufferA = Buffer.from(String(a));
+  const bufferB = Buffer.from(String(b));
+
+  if (bufferA.length !== bufferB.length) {
+    // timingSafeEqual exige buffers do mesmo tamanho; comparar contra um
+    // buffer do próprio tamanho de A garante um "false" em tempo
+    // constante em vez de expor a diferença de comprimento antes disto.
+    crypto.timingSafeEqual(bufferA, bufferA);
+    return false;
+  }
+
+  return crypto.timingSafeEqual(bufferA, bufferB);
+}
+
 async function verificarPassword(passwordFornecida, passwordGuardada) {
   const valorGuardado = passwordGuardada || "";
 
-  const passwordUsaBcrypt =
-    valorGuardado.startsWith("$2a$") ||
-    valorGuardado.startsWith("$2b$") ||
-    valorGuardado.startsWith("$2y$");
-
-  if (passwordUsaBcrypt) {
+  if (passwordUsaBcrypt(valorGuardado)) {
     return bcrypt.compare(passwordFornecida, valorGuardado);
   }
 
-  return passwordFornecida === valorGuardado;
+  return compararTextoSimplesSeguro(passwordFornecida, valorGuardado);
+}
+
+/*
+ * Migração progressiva: sempre que um residente antigo faz login com
+ * sucesso usando a password em texto simples, é imediatamente reencriptada
+ * com bcrypt. Ao fim de algum tempo, todas as contas ativas deixam de ter
+ * a password em texto simples na base de dados — sem migração manual nem
+ * quebra de sessões existentes.
+ */
+async function migrarPasswordSeNecessario(residente, passwordFornecida) {
+  if (passwordUsaBcrypt(residente.password || "")) {
+    return;
+  }
+
+  try {
+    const novoHash = await bcrypt.hash(passwordFornecida, 12);
+    await residenteModel.atualizarPasswordRecuperada(residente.id, novoHash);
+  } catch (erro) {
+    console.error(
+      "Erro ao migrar password para bcrypt:",
+      erro.message
+    );
+  }
 }
 
 function assinarTokenResidente(residente) {
@@ -54,12 +147,22 @@ async function login(req, res) {
     }
 
     const usernameLimpo = username.trim();
+    const ip = obterIp(req);
+
+    if (limiteExcedido(ip, usernameLimpo)) {
+      return res.status(429).json({
+        sucesso: false,
+        mensagem: "Demasiadas tentativas. Tenta novamente mais tarde."
+      });
+    }
 
     const residente = await residenteModel.procurarPorUsername(
       usernameLimpo
     );
 
     if (!residente) {
+      registarTentativaLogin(ip, usernameLimpo);
+
       return res.status(401).json({
         sucesso: false,
         mensagem: "Username ou password incorretos."
@@ -72,11 +175,15 @@ async function login(req, res) {
     );
 
     if (!passwordValida) {
+      registarTentativaLogin(ip, usernameLimpo);
+
       return res.status(401).json({
         sucesso: false,
         mensagem: "Username ou password incorretos."
       });
     }
+
+    await migrarPasswordSeNecessario(residente, password);
 
     const token = assinarTokenResidente(residente);
 
@@ -389,12 +496,22 @@ async function loginLegado(req, res) {
     }
 
     const usernameLimpo = String(username).trim();
+    const ip = obterIp(req);
+
+    if (limiteExcedido(ip, usernameLimpo)) {
+      return res.status(429).json({
+        sucesso: false,
+        mensagem: "Demasiadas tentativas. Tenta novamente mais tarde."
+      });
+    }
 
     const residente = await residenteModel.procurarPorUsername(
       usernameLimpo
     );
 
     if (!residente) {
+      registarTentativaLogin(ip, usernameLimpo);
+
       return res.status(401).json({
         sucesso: false,
         mensagem:
@@ -408,12 +525,16 @@ async function loginLegado(req, res) {
     );
 
     if (!passwordValida) {
+      registarTentativaLogin(ip, usernameLimpo);
+
       return res.status(401).json({
         sucesso: false,
         mensagem:
           "Login não reconhecido. Tenta novamente ou faz o teu registo."
       });
     }
+
+    await migrarPasswordSeNecessario(residente, password);
 
     const token = assinarTokenResidente(residente);
 

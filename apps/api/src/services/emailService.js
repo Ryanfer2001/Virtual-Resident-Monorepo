@@ -32,17 +32,15 @@ function criarTransporter() {
     },
 
     /*
-     * Necessário apenas no teu ambiente local,
-     * porque a rede apresentou um certificado
-     * autoassinado na ligação SMTP.
-     *
-     * Em produção, esta opção deve voltar para true
-     * ou deve ser removida depois de corrigir a cadeia
-     * de certificados do servidor/rede.
+     * "rejectUnauthorized: false" só se aplica fora de produção, porque a
+     * rede local apresentou um certificado autoassinado na ligação SMTP.
+     * Em produção a verificação do certificado fica sempre ativa — sem
+     * isto, a ligação ficava vulnerável a man-in-the-middle no envio do
+     * link de recuperação de password.
      */
     tls: {
       servername: SMTP_HOST.trim(),
-      rejectUnauthorized: false
+      rejectUnauthorized: process.env.NODE_ENV === "production"
     }
   });
 }

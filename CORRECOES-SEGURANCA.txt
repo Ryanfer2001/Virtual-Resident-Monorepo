@@ -1,0 +1,36 @@
+CORREÇÕES DE SEGURANÇA — NOSZONA SMART
+Cabo Verde Virtual Resident
+=================================================================
+Lista de tópicos dos erros corrigidos (relatório original: etson.txt)
+
+
+BACKEND (apps/api)
+-----------------------------------------------------------------
+- IDOR corrigido nos pedidos de cartão (solicitarCartao, consultarPedidoCartao,
+  cancelarPedidoCartao) — id passa a vir sempre do token, nunca do cliente
+- Pedido de cartão legado (/solicitar-cartao) passa a exigir autenticação
+- Fallback de password em texto simples: comparação em tempo constante
+  (timingSafeEqual) + migração automática para bcrypt em cada login
+- Rate limiting no login de residentes (por IP e por username)
+- CORS deixa de aceitar qualquer origem ("*") por omissão
+- TLS do SMTP só fica desativado fora de produção
+- Endpoint /api/database/teste bloqueado em produção e sem detalhes de erro
+- Limite máximo (500 000 CVE) no valor de um pagamento
+
+
+FRONTEND (apps/web)
+-----------------------------------------------------------------
+- Sessão do residente migrada para cookie httpOnly — token deixa de estar
+  acessível a JavaScript (localStorage)
+- Proteção CSRF (double-submit) nas rotas de fotos e de pagamento
+- Verificação de sessão no servidor antes de desenhar o /dashboard
+- Dados de perfil movidos de localStorage para sessionStorage
+- Validação server-side no registo de residentes (email, password)
+- Fotos e pagamentos exigem sempre o id do token, nunca do pedido do cliente
+
+
+PENDENTE — DECISÃO DO UTILIZADOR
+-----------------------------------------------------------------
+- Rodar o ADMIN_JWT_SECRET se alguma vez foi usado em produção
+- IDs sequenciais de residente (NZS-VR-0000001-2026) — fora de âmbito,
+  exigiria migração de formato em todo o sistema

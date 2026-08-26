@@ -32,7 +32,7 @@ export default function LoginPage() {
 
       const resposta = await fazerLogin(username, password);
 
-      if (!resposta.sucesso || !resposta.token || !resposta.residente) {
+      if (!resposta.sucesso || !resposta.residente) {
         throw new Error(
           resposta.mensagem || "Não foi possível iniciar sessão.",
         );
@@ -53,7 +53,6 @@ export default function LoginPage() {
 };
 
 guardarSessao(
-  resposta.token,
   residentePreparado,
 );
 

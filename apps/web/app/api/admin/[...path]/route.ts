@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-import { ADMIN_API_BASE_URL, ADMIN_COOKIE_NAME } from "@/lib/admin-session";
+import {
+  ADMIN_API_BASE_URL,
+  ADMIN_COOKIE_NAME,
+  ADMIN_CSRF_COOKIE_NAME,
+  ADMIN_CSRF_HEADER_NAME,
+} from "@/lib/admin-session";
 
 interface Contexto {
   params: Promise<{ path: string[] }>;
@@ -18,6 +23,22 @@ async function encaminhar(request: NextRequest, contexto: Contexto) {
       { sucesso: false, mensagem: "Sessão administrativa não encontrada." },
       { status: 401, headers: { "Cache-Control": "no-store" } },
     );
+  }
+
+  // Pedidos de escrita têm de provar, com o cookie CSRF, que quem os fez
+  // consegue ler cookies do nosso próprio site — um pedido forjado a
+  // partir de outro site nunca consegue anexar este cabeçalho, mesmo que
+  // o cookie admin_session seja enviado automaticamente pelo browser.
+  if (METODOS_COM_CORPO.has(request.method)) {
+    const csrfCookie = cookieStore.get(ADMIN_CSRF_COOKIE_NAME)?.value;
+    const csrfHeader = request.headers.get(ADMIN_CSRF_HEADER_NAME);
+
+    if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+      return NextResponse.json(
+        { sucesso: false, mensagem: "Token CSRF inválido ou em falta." },
+        { status: 403, headers: { "Cache-Control": "no-store" } },
+      );
+    }
   }
 
   const { path } = await contexto.params;

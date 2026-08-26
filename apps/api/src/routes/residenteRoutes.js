@@ -30,6 +30,7 @@ router.get(
 
 router.post(
   "/fotos",
+  authMiddleware.autenticarToken,
   residenteController.atualizarFotos
 );
 
@@ -104,6 +105,7 @@ router.post(
 
 router.post(
   "/solicitar-cartao",
+  authMiddleware.autenticarToken,
   residenteController.solicitarCartaoLegado
 );
 

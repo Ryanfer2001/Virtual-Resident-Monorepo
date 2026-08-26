@@ -1,142 +1,403 @@
-O QUE O ADMIN (VISÃO GERAL) MOSTRA NESTE MOMENTO
-==================================================
+AUDITORIA DE SEGURANÇA — FRONTEND (apps/web)
+Cabo Verde Virtual Resident — Noszona Monorepo
+=================================================================
 
-Sidebar (esquerda)
-- Título "Cabo Verde Virtual Resident"
-- Bloco de conta: avatar com iniciais, nome do admin, "Sessão ADM"
-- Secções: Visão geral, Residentes, Fotografias, Cartões, Auditoria
-- Botão "Terminar sessão"
+Âmbito: apps/web (app/, components/, lib/), packages/api-client,
+packages/types, packages/ui. Revisão só de leitura, sem alterações.
 
-Cabeçalho da página
-- Eyebrow "Painel"
-- Título "Visão geral"
-- Descrição "Resumo da plataforma e da atividade recente dos residentes."
-
-Conteúdo da Visão geral
-1. Cartão hero (grande, canto superior esquerdo)
-   - Título "Saldo total"
-   - Valor grande: soma do saldo de todos os residentes (em CVE)
-   - Legenda: "Receita mensal recebida ao longo do ano"
-   - Gráfico de linha de fundo: receita mensal real do ano corrente,
-     somada a partir da tabela "pagamentos" (só pagamentos com
-     estado = concluido), com os 12 meses (jan a dez) e 0 nos meses
-     sem receita
-**O gráfico não aparece, deve aparecer mesmo estadnto tudo em 00**   
-
-2. Cartão "Contas pendentes" (ao lado do hero)
-   - Ícone de relógio
-   - Número de contas com estado pendente
-   - Legenda "Aguardam ativação"
-
-3. Linha de 3 cartões (por baixo dos dois primeiros)
-   - "Swipes totais" (ícone raio) — soma de swipes de todas as contas
-   - "Fotografias pendentes" (ícone imagem) — fotos por rever
-   - "Pedidos de cartão pendentes" (ícone cartão) — pedidos por aprovar
-
-4. Cartão donut "Virtual Residents" (coluna direita, altura toda)
-  ** O componente deve ter o formato de uma laranja (flor) vista de cima, composta por vários gomos dispostos circularmente. Não cries um gráfico donut tradicional com divisões triangulares rígidas. Cada gomo deve parecer uma peça individual, orgânica e arredondada, semelhante a um gomo de laranja:
-
-Formato largo na extremidade exterior;
-Formato mais estreito junto ao centro;
-Cantos bastante arredondados;
-Pequenos espaços entre os gomos;
-Abertura circular no centro;
-Organização radial completa, formando uma circunferência;
-Aparência moderna, limpa e ligeiramente tridimensional;
-Sombra suave para separar visualmente os gomos.
-
-Cada gomo deve representar um tipo de residente existente no projeto, por exemplo:
-
-Visitor;
-Diaspora;
-Business;
-Student;
-Admin;
-Outros tipos existentes nos dados do sistema.
-
-Ignora completamente os números presentes na imagem de referência. O tamanho dos gomos não deve depender da quantidade de residentes. Todos devem possuir dimensões visualmente equilibradas. A quantidade de gomos deve ser determinada pelos tipos de residente disponíveis no sistema, sem duplicar categorias.
-
-Dentro de cada gomo, apresenta:
-
-Nome do tipo de residente;
-Um ícone simples relacionado com a categoria;
-Cor própria para facilitar a identificação.
-
-Utiliza a identidade visual do Cabo Verde Virtual Resident, com combinações de azul-marinho, azul-ciano, verde, branco e dourado. Mantém contraste suficiente para que os nomes sejam facilmente legíveis.
-
-Interações:
-
-Ao passar o cursor sobre um gomo, ele deve deslocar-se ligeiramente para fora;
-O gomo selecionado deve ficar mais iluminado e destacado;
-Ao clicar, deve ser possível filtrar ou apresentar informações daquele tipo de residente;
-A animação deve ser suave e não deve alterar a posição geral do gráfico;
-Respeita prefers-reduced-motion.
-
-Responsividade:
-
-No desktop, mostra a laranja completa;
-Em tablets, reduz proporcionalmente sem cortar os gomos;
-No telemóvel, mantém o formato circular dentro da largura disponível;
-Os textos devem diminuir ou ser apresentados através de tooltip quando não houver espaço;
-Nenhuma parte pode provocar rolagem horizontal.
-
-Antes de implementar, identifica o componente correto do dashboard administrativo onde esse visual deve aparecer. Reutiliza os tipos e dados já existentes no projeto. Não alteres o backend, as rotas, a autenticação nem outras funcionalidades. Evita código duplicado e mantém o padrão atual de Next.js, React e CSS utilizado no repositório.**
-
-5. Tabela "Registos recentes" (por baixo, largura toda)
-   - Colunas: Nome, Utilizador, Plano, Estado (badge colorido), Criado em
-   - Mostra os 5 registos mais recentes
-
-Nota técnica: os dados de "distribuição por pacote" e "receita mensal"
-vêm de alterações que fiz no controller da API local
-(apps/api/src/controllers/adminDashboardController.js). O
-apps/web/.env.local aponta para uma API remota
-(darkgrey-meerkat-287167.hostingersite.com), por isso estes dois
-elementos só aparecem com dados reais depois de fazeres deploy dessa
-API atualizada.
+Ordenado por gravidade (mais grave primeiro).
 
 
-10 PERGUNTAS PARA PERCEBER MELHOR O QUE QUERES
-==================================================
+[CRÍTICO] 1. Endpoints de residente sem autenticação real (IDOR)
+-----------------------------------------------------------------
+Ficheiros:
+  apps/web/app/api/residentes/fotos/route.ts (linhas 13-53)
+  apps/web/app/api/pagamento/iniciar/route.ts (linhas 58-146)
+  apps/web/lib/node-red-proxy.ts (linhas 22-57)
 
-1. A imagem de referência que mandaste é para copiar ao pormenor
-   (mesmas proporções, mesmas cores, "flor" de 8 pétalas no donut),
-   ou é só inspiração geral de estilo e podemos adaptar à nossa
-   estrutura de dados real?
+Descrição: estas rotas recebem "residenteId" diretamente do corpo do
+pedido enviado pelo browser e reencaminham para o backend (Node-RED /
+BACKEND_API_URL) SEM verificar nenhum token, cookie ou sessão do
+residente. O JWT emitido no login (app/api/residentes/login/route.ts,
+linha 103) é guardado em localStorage (lib/auth.ts) mas nunca é
+reenviado em nenhum pedido posterior — confirmado por pesquisa no
+código: "obterToken()" (lib/auth.ts:18) não é chamado em lado nenhum,
+nem existe cabeçalho "Authorization" em lib/api.ts.
 
-2. O número grande do cartão hero deve continuar a ser "Saldo total"
-   (soma das carteiras dos residentes), ou deve passar a ser a
-   "Receita do ano" (soma da tabela pagamentos), já que agora o
-   gráfico por trás mostra receita mensal?
+Cenário de ataque: qualquer pessoa (mesmo sem sessão iniciada) pode
+fazer um POST direto (curl/Postman) para /api/residentes/fotos com um
+"residenteId" de outra pessoa e substituir a foto de perfil/BI/cartão
+dessa conta; ou fazer POST para /api/pagamento/iniciar com o
+"residenteId" e "valor" que quiser, iniciando um pagamento Vinti4
+associado à conta de outro residente. Isto é falha de autenticação +
+IDOR (Insecure Direct Object Reference) — o token existe mas não
+protege nada na prática.
 
-3. No donut "Virtual Residents", queres os pacotes agrupados em 4
-   categorias (Visitor / Diaspora / Business / Student), ou um
-   segmento por cada plano específico (ex: "Business Elite",
-   "Diaspora Completo", etc., tal como aparecem na tabela)?
+Correção sugerida: validar o JWT do residente (Authorization: Bearer)
+em cada uma destas rotas Next.js e derivar o residenteId do token
+(nunca aceitar o valor enviado pelo cliente como fonte de verdade).
 
-4. As cores do donut e do gráfico devem seguir o verde da marca
-   (que já é usado nos botões/badges), ou preferes um conjunto de
-   cores diferente, tipo as da imagem de referência?
 
-5. Queres interatividade nos gráficos (tooltip ao passar o rato com
-   o valor exato de cada mês/fatia), ou mantemos só visual, sem
-   interação?
+[ALTO] 2. Token e dados pessoais em localStorage (XSS-stealable)
+-----------------------------------------------------------------
+Ficheiro: apps/web/lib/auth.ts (linhas 3-4, 14-15, 23, 31, 52)
 
-6. Confirmas que o deploy da API remota (Hostinger) fica do teu lado,
-   ou queres que eu prepare algo (script de migração, instruções) para
-   facilitar esse deploy?
+Descrição: "guardarSessao" grava o JWT ("noszona_token") e o objeto
+completo do residente ("noszona_residente" — nome, email, telefone,
+morada, saldo, username, fotos base64) em localStorage. Qualquer
+script que corra na página (XSS, dependência comprometida, extensão
+maliciosa) consegue ler estes dados com "localStorage.getItem(...)"
+sem qualquer proteção httpOnly. Comparar com a área admin, que usa
+cookie httpOnly (ver ponto 6 — boa prática já aplicada lá).
 
-7. Para telemóvel, há algum tamanho de ecrã específico que uses para
-   testar (ex: iPhone SE, um Android específico), ou testo nos
-   breakpoints standard (900px, 700px, 480px)?
+Cenário de ataque: uma única vulnerabilidade XSS (nesta app ou numa
+dependência de terceiros carregada na página) permite roubar o token
+e todos os dados pessoais do residente com uma linha de JavaScript.
 
-8. Os cartões "Total de residentes" e "Contas ativas/suspensas" que
-   existiam antes foram removidos da Visão geral (ficaram implícitos
-   no donut). Queres que voltem a aparecer em algum lado, ou está bem
-   assim?
 
-9. A tabela "Registos recentes" deve continuar só com os últimos 5,
-   ou precisas de mais linhas, paginação, ou outras colunas?
+[ALTO] 3. Acesso ao /dashboard confiado inteiramente ao cliente
+-----------------------------------------------------------------
+Ficheiro: apps/web/app/dashboard/page.tsx (linhas 60-71)
 
-10. Este pedido de "ficar parecido com a imagem" aplica-se só à Visão
-    geral, ou também queres alinhar visualmente as outras secções
-    (Residentes, Fotografias, Cartões, Auditoria) ao mesmo estilo?
+Descrição: o "gate" de acesso ao dashboard é só
+"obterResidenteGuardado()" a ler o localStorage — não há nenhuma
+chamada ao servidor para confirmar que a sessão é válida antes de
+desenhar a página. Basta abrir a consola do browser e escrever
+"localStorage.setItem('noszona_residente', JSON.stringify({...}))"
+para o dashboard renderizar com dados inventados. Isto por si só é
+"só" um problema de UI, mas como as ações reais (upload de fotos,
+pagamento) também não validam sessão no servidor (ponto 1), a
+combinação é grave: não há nenhum sítio no fluxo do residente onde o
+servidor efetivamente comprove quem está a pedir o quê.
+
+Contraste: a área admin (app/admin/dashboard/page.tsx) está bem
+desenhada — os dados reais (obterResumo, listarResidentes, etc.)
+passam por app/api/admin/[...path]/route.ts, que exige cookie
+httpOnly "admin_session" (linha 14-21) antes de reencaminhar ao
+backend com "Authorization: Bearer". Ou seja, no admin a proteção real
+está no servidor; no residente não está em lado nenhum.
+
+
+[ALTO] 4. Valor do pagamento aceite do cliente sem recálculo/whitelist
+-----------------------------------------------------------------
+Ficheiro: apps/web/app/api/pagamento/iniciar/route.ts (linhas 86-102)
+
+Descrição: o campo "valor" (montante da recarga) vem de um <input
+type="number"> no formulário (apps/web/app/dashboard/page.tsx, linha
+594-604) e a rota só valida que é um inteiro positivo — não o compara
+com nenhuma tabela de preços nem o associa ao pacote do residente.
+Combinado com o ponto 1 (sem autenticação), um atacante pode iniciar
+pedidos de pagamento com qualquer valor para qualquer residenteId.
+Mesmo assumindo boa-fé, o Next.js não tem nenhuma defesa própria aqui
+— confia 100% no backend remoto para validar o "callback" do Vinti4
+antes de creditar saldo (esse backend está fora do âmbito desta
+auditoria — apps/api / Node-RED — recomenda-se confirmar lá).
+
+
+[MÉDIO] 5. Segredo administrativo em .env.local com aspeto de valor real
+-----------------------------------------------------------------
+Ficheiro: apps/web/.env.local (linha 16)
+
+Descrição: "ADMIN_JWT_SECRET=PG.PNG#2026" — não está commitado (o
+.gitignore raiz tem ".env" e ".env.*" com exceção só para
+".env.example", confirmado), por isso não há exposição no
+repositório. Mas o valor parece um segredo "a sério" e não um
+placeholder óbvio ("changeme", "xxx"). Recomenda-se confirmar que
+nunca foi usado em produção e, se foi, rodar a chave.
+
+
+[MÉDIO] 6. Ausência de CSRF token (mitigado parcialmente por SameSite)
+-----------------------------------------------------------------
+Ficheiros:
+  apps/web/app/api/admin/login/route.ts (linhas 60-68)
+  apps/web/app/api/admin/[...path]/route.ts
+
+Descrição: não existe nenhum token CSRF explícito em lado nenhum da
+aplicação. Na área admin isto é mitigado razoavelmente pelo cookie
+"admin_session" ser httpOnly + Secure(prod) + SameSite=Lax, que
+bloqueia o envio do cookie em pedidos POST/PATCH cross-site. Na área
+de residente não há cookie de sessão nenhum a proteger — o problema aí
+é mais grave que CSRF: é ausência total de autenticação (ponto 1), o
+que torna a pergunta "CSRF" irrelevante nesse troço (não há sessão
+para forjar).
+
+
+[BAIXO] 7. Validação de registo só no cliente / backend fora de vista
+-----------------------------------------------------------------
+Ficheiros:
+  apps/web/app/registo/page.tsx (linhas 266-334, "validarFormulario")
+  apps/web/app/api/residentes/registar/route.ts (linhas 13-53)
+
+Descrição: o formulário de registo tem validação client-side razoável
+(email por regex, password >= 6 chars com letras+números, campos
+obrigatórios, confirmação de password). A rota Next.js
+"/api/residentes/registar" é um passa-tudo: envia o "body" recebido
+tal e qual para o Node-RED (via encaminharParaNodeRed), sem repetir
+nenhuma validação no lado do servidor Next.js. Não foi possível
+confirmar (fora do âmbito apps/web) se o backend Node-RED faz a sua
+própria validação — se não fizer, a única barreira contra dados
+malformados/maliciosos é o browser do próprio atacante, facilmente
+contornável com um POST direto.
+
+
+[BAIXO] 8. Dependências (skim de apps/web/package.json)
+-----------------------------------------------------------------
+next ^16.2.11, react/react-dom 19.2.4, jsonwebtoken ^9.0.3,
+qrcode ^1.5.4, animejs ^4.5.0 — versões recentes, nada obviamente
+desatualizado à vista. Recomenda-se correr "pnpm audit" periodicamente
+(não foi feita consulta a CVEs em tempo real nesta auditoria).
+
+
+SEM PROBLEMAS ENCONTRADOS
+-----------------------------------------------------------------
+- XSS via dangerouslySetInnerHTML / innerHTML / document.write: nenhuma
+  ocorrência em todo o apps/web (pesquisado em todo o código).
+- console.log de tokens, passwords ou números de BI: nenhuma
+  ocorrência encontrada.
+- Open redirect: todos os "router.push(...)" usam destinos fixos no
+  código (nunca um valor vindo de query string ou input do
+  utilizador é usado como destino de navegação).
+- Upload de foto do BI: o ficheiro nunca é enviado "em bruto" — é
+  sempre redesenhado em <canvas> e reencodado para JPEG
+  (lib/imagens.ts), o que elimina risco de upload de ficheiros
+  disfarçados de imagem (ex.: SVG com script).
+- Credenciais de teste/admin hardcoded no código-fonte: nenhuma
+  encontrada (procurado "password=", "admin123", etc.).
+
+
+RESUMO — PRIORIDADE DE CORREÇÃO
+-----------------------------------------------------------------
+1º Autenticar de facto os pedidos de residente (fotos + pagamento) —
+   sem isto, qualquer pessoa mexe em contas de outros residentes.
+2º Deixar de guardar token/PII em localStorage — mover sessão do
+   residente para cookie httpOnly, ao estilo do que já existe no admin.
+3º Validar sessão do residente no servidor antes de servir /dashboard.
+4º Rever/rodar o ADMIN_JWT_SECRET local se alguma vez usado em produção.
+
+
+
+===================================================================
+===================================================================
+
+AUDITORIA DE SEGURANÇA — BACKEND (apps/api) — Cabo Verde Virtual Resident
+===========================================================================
+Âmbito: apps/api (Express/MySQL), packages/* (validation, api-client, types
+— vazios, sem código-fonte além do package.json, nada a rever), .env/.env.example.
+Revisão só de leitura, sem alterações a código.
+
+Nota importante: a auditoria do frontend (secção acima) descreve rotas
+Next.js que reencaminham para um backend "Node-RED" / BACKEND_API_URL sem
+reenviar o token. apps/api (Express, este relatório) é um backend
+diferente/mais recente que já tem authMiddleware/adminAuthMiddleware
+implementados corretamente na maior parte das rotas. Não foi possível, a
+partir só de apps/api, confirmar qual dos dois backends está realmente em
+produção atrás de apps/web — isso deve ser confirmado à parte. Os
+problemas abaixo são todos internos a apps/api, independentemente disso.
+
+
+CRÍTICO
+===========================================================================
+
+1) Upload de fotos (perfil / BI / cartão) SEM autenticação e SEM verificação
+   de dono — IDOR total
+   Ficheiro: apps/api/src/routes/residenteRoutes.js:31-34
+             (router.post("/fotos", residenteController.atualizarFotos) —
+             sem authMiddleware.autenticarToken, ao contrário de quase
+             todas as outras rotas do ficheiro)
+   Ficheiro: apps/api/src/controllers/residenteController.js:98-113
+             (o "id" do residente vem só de req.body.id / residenteId /
+             residente_id — nunca de um token verificado)
+   Descrição: qualquer pessoa, sem sessão, pode enviar um POST para
+   /api/residentes/fotos com {"id": "<qualquer ID>", "fotoBIBase64": "..."}
+   e substituir a foto de perfil, a foto do BI (documento de identidade) ou
+   a foto do cartão de QUALQUER residente.
+   Cenário de ataque: os IDs são sequenciais e previsíveis — gerados em
+   residenteModel.js:143-168 no formato "NZS-VR-0000001-2026",
+   "NZS-VR-0000002-2026", etc. Um atacante pode simplesmente percorrer a
+   sequência e, para cada residente, apagar/substituir a foto do BI
+   (documento oficial de identidade) por qualquer imagem, ou forçar o
+   estado de revisão de volta a "pendente" (residenteModel.atualizarFotos,
+   linhas 348/363), interrompendo o fluxo de aprovação de todos os
+   utilizadores da plataforma. Não é necessário login nenhum.
+   Nível: CRÍTICO
+
+
+ALTO
+===========================================================================
+
+2) IDOR nos endpoints de pedido de cartão — o middleware de autenticação é
+   ignorado por engano
+   Ficheiro: apps/api/src/controllers/residenteController.js
+     - solicitarCartao        linhas 289-296
+     - consultarPedidoCartao  linhas 361-368
+     - cancelarPedidoCartao   linhas 408-415
+   Causa raiz: authMiddleware.autenticarToken (apps/api/src/middleware/
+   authMiddleware.js:40) guarda os dados do JWT em "req.utilizador".
+   Só que estas 3 funções procuram o id do residente por esta ordem:
+   req.usuario?.id || req.user?.id || req.body?.id || req.body?.residenteId
+   || req.params?.id — nunca chegam a olhar para "req.utilizador.id".
+   Como "req.usuario" e "req.user" nunca são definidos em lado nenhum do
+   projeto, o id vem sempre do corpo/parâmetros do pedido, controlado
+   pelo cliente, mesmo estando a rota "protegida" por login.
+   (Compare com consultarQR/gerarQR/desativarQR/consultarPermissoes/
+   consumirSwipe, no mesmo ficheiro, que verificam req.utilizador?.id
+   primeiro e por isso estão corretamente protegidos — mostra que é um
+   erro de cópia/inconsistência, não uma escolha deliberada.)
+   Cenário de ataque: qualquer residente autenticado (basta ter conta
+   própria) pode indicar o ID de outro residente e:
+     - cancelar o pedido de cartão pendente de outra pessoa
+       (cancelarPedidoCartao)
+     - consultar o estado do pedido de cartão e o UID do cartão físico
+       de outra pessoa (consultarPedidoCartao, também exposto sem
+       verificação em GET /api/residentes/pedido-cartao/:id —
+       residenteRoutes.js:89-93)
+     - criar um pedido de cartão em nome de outra pessoa (solicitarCartao)
+   Nível: ALTO
+
+3) Fallback de password em texto simples, com comparação não segura
+   Ficheiro: apps/api/src/controllers/authController.js:6-24
+   Descrição: verificarPassword() só usa bcrypt.compare quando o valor
+   guardado começa por "$2a$/$2b$/$2y$"; caso contrário compara a
+   password recebida com a guardada usando "===" (comparação de string
+   simples, sujeita a timing attack, e assume texto simples na BD).
+   O próprio comentário do código confirma que existem "residentes
+   antigos" cujas passwords ainda estão em texto simples na base de
+   dados, sem nenhum mecanismo automático de migração forçada para hash.
+   Cenário de ataque: qualquer fuga da base de dados (backup exposto,
+   outro bug, acesso indevido de terceiros) expõe imediatamente as
+   passwords reais desses utilizadores antigos, em vez de apenas hashes.
+   Nível: ALTO
+
+4) Pedido de cartão legado, sem autenticação nenhuma
+   Ficheiro: apps/api/src/routes/residenteRoutes.js:105-108
+             (POST /solicitar-cartao, sem authMiddleware)
+   Ficheiro: apps/api/src/controllers/residenteController.js:905-916
+             (solicitarCartaoLegado — id vem só de req.body.id)
+   Descrição: qualquer pessoa sem sessão pode criar um pedido de cartão
+   físico em nome de qualquer ID de residente.
+   Nível: ALTO (menor impacto que o nº1, mas mesmo padrão de falha)
+
+
+MÉDIO
+===========================================================================
+
+5) Sem rate limiting / bloqueio por tentativas falhadas no login de
+   residentes (mas SIM no login de admin)
+   Ficheiro: apps/api/src/controllers/authController.js — login (45-137)
+   e loginLegado (380-471); apps/api/src/app.js (nenhum middleware global
+   de rate limit)
+   Comparar com: apps/api/src/controllers/adminAuthController.js:22-37
+   (limite de 30 pedidos/15min por IP) e apps/api/src/models/
+   adminModel.js + config/adminAuth.js (bloqueio de conta ao fim de 5
+   tentativas falhadas, 15 min) — proteção que existe só para admins.
+   Cenário de ataque: um atacante pode tentar força bruta ilimitada de
+   passwords contra contas de residentes (username+password), único
+   travão é o custo do bcrypt.
+   Nível: MÉDIO
+
+6) Início de pagamento (SISP/Vinti4) sem autenticação e com valor/ID
+   controlados pelo cliente
+   Ficheiro: apps/api/src/routes/pagamentoRoutes.js:9-12 (POST /iniciar,
+   sem authMiddleware)
+   Ficheiro: apps/api/src/services/sispService.js:539-561 (residenteId e
+   valor lidos diretamente de req.body, sem validar que residenteId
+   pertence a quem está a pagar, nem tabela de preços server-side)
+   Nota positiva: a confirmação do pagamento (processarRetorno,
+   pagamentoController.js:416-831) É bem feita — valida assinatura
+   FingerPrint da SISP com SHA-512 e crypto.timingSafeEqual
+   (sispService.js:823-850), confirma merchantSession e valor batem
+   certo com o que foi guardado, e é idempotente (não processa a mesma
+   transação duas vezes). O cliente NÃO consegue "marcar como pago" sem
+   a SISP validar.
+   Cenário de ataque: por faltar auth/ownership no /iniciar, qualquer
+   pessoa pode gerar pedidos de pagamento associados a qualquer
+   residenteId à sua escolha; como quem paga é sempre quem completa o
+   3DS com o próprio cartão, não há roubo de saldo, mas é uma lacuna de
+   autorização que permite poluir a tabela de pagamentos e associar
+   pagamentos de terceiros a contas alheias.
+   Nível: MÉDIO
+
+7) CORS cai para wildcard "*" se a variável FRONTEND_URL não estiver
+   definida
+   Ficheiro: apps/api/src/app.js:53-59
+   Descrição: `origin: process.env.FRONTEND_URL || "*"`. Se em produção
+   esta variável não estiver definida (ou estiver mal definida), a API
+   aceita pedidos cross-origin de qualquer site. Combinado com os
+   endpoints sem autenticação acima (upload de fotos, solicitar-cartao,
+   qr/validar), um site malicioso poderia fazer esses pedidos a partir do
+   browser de uma vítima.
+   Nível: MÉDIO
+
+
+BAIXO
+===========================================================================
+
+8) Verificação de certificado TLS desativada no SMTP, para todos os
+   ambientes (não só local)
+   Ficheiro: apps/api/src/services/emailService.js:43-46
+   (`tls: { rejectUnauthorized: false }`)
+   Descrição: o comentário no código diz que isto é só necessário
+   localmente, mas não há nenhuma condição por ambiente (NODE_ENV) —
+   aplica-se sempre, incluindo produção. Isto permite um ataque
+   man-in-the-middle na ligação SMTP que envia o link de recuperação de
+   password.
+   Nível: BAIXO/MÉDIO
+
+9) Endpoint de teste de BD público devolve mensagem de erro interna
+   Ficheiro: apps/api/src/app.js:113-133 (GET /api/database/teste)
+   Descrição: sem autenticação, e em caso de falha devolve
+   `erro: erro.message` (pode incluir detalhes internos de ligação MySQL).
+   Nível: BAIXO
+
+10) IDs de residente sequenciais e previsíveis
+    Ficheiro: apps/api/src/models/residenteModel.js:143-168
+    Descrição: formato "NZS-VR-0000001-2026" com número a incrementar.
+    Facilita enumeração de contas, o que agrava diretamente os problemas
+    de IDOR acima (nº1, nº2, nº4).
+    Nível: BAIXO (agravante dos outros, não é vulnerabilidade isolada)
+
+
+SEM PROBLEMAS ENCONTRADOS (apps/api)
+===========================================================================
+- Injeção SQL: não encontrada. Todas as queries usam pool.execute/query
+  com parâmetros "?" (mysql2). Os poucos sítios onde nomes de coluna são
+  interpolados na string SQL (adminFotosController.js MAPA_TIPO_FOTO,
+  adminResidentesController.js COLUNAS_ORDENACAO_PERMITIDAS) vêm sempre
+  de listas brancas fixas no código, nunca diretamente do input do
+  utilizador.
+- QR rotativo: bem implementado. Token aleatório de 256 bits
+  (crypto.randomBytes(32)), gerado e validado sempre no servidor
+  (residenteController.js gerarQR/validarQR), o frontend só chama
+  /qr/gerar a cada 30s (apps/web/app/dashboard/page.tsx:138-139) — não
+  há geração/validação no cliente
+  (residenteModel.js guardarQRToken/validarQRToken:659-705).
+- Autorização admin: bem implementada. Todas as rotas /api/admin/* (exceto
+  /login) passam por autenticarAdmin + exigirAdministrador
+  (adminRoutes.js:31), com JWT próprio (ADMIN_JWT_SECRET, separado do
+  JWT_SECRET de residentes), issuer/audience e expiração de 30 min.
+- Fotos do BI/perfil no admin: só acessíveis autenticado+admin, nunca em
+  base64 nas listagens (adminFotosController.js:80-138, Cache-Control:
+  private, no-store).
+- Segredos: apps/api/.env existe localmente mas NÃO está versionado no
+  git (confirmado com "git ls-files" — sem resultados — e está coberto
+  por ".env" + ".env.*" no .gitignore da raiz). Não há segredos
+  hardcoded encontrados no código-fonte de apps/api.
+- Dependências (apps/api/package.json): express ^5.2.1, jsonwebtoken
+  ^9.0.3, bcrypt ^6.0.0, mysql2 ^3.22.6, helmet ^8.3.0 — nada
+  visivelmente desatualizado ou com CVE conhecido óbvio.
+
+
+RESUMO / PRIORIDADE DE CORREÇÃO (apps/api)
+===========================================================================
+1. [CRÍTICO] Exigir auth + verificar dono em POST /api/residentes/fotos
+2. [ALTO]    Corrigir req.usuario/req.user -> req.utilizador em
+             solicitarCartao / consultarPedidoCartao / cancelarPedidoCartao
+3. [ALTO]    Forçar rehash bcrypt de todas as passwords antigas e remover
+             o fallback de comparação em texto simples
+4. [ALTO]    Exigir auth em POST /api/residentes/solicitar-cartao
+5. [MÉDIO]   Rate limiting + bloqueio de conta no login de residentes
+6. [MÉDIO]   Exigir auth + validar dono em POST /api/pagamento/iniciar
+7. [MÉDIO]   Definir FRONTEND_URL sempre em produção (nunca cair no "*")
+8. [BAIXO]   Reativar rejectUnauthorized no SMTP em produção
+9. [BAIXO]   Remover ou proteger /api/database/teste, não devolver
+             erro.message ao cliente

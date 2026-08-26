@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { animate } from "animejs";
 import QRCode from "qrcode";
@@ -10,8 +10,10 @@ import Header from "@/components/Header";
 
 import {
   atualizarResidenteGuardado,
+  obterCabecalhoCsrf,
   obterResidenteGuardado,
   terminarSessao,
+  verificarSessao,
 } from "@/lib/auth";
 
 import { enviarFotosResidente } from "@/lib/api";
@@ -57,17 +59,34 @@ export default function DashboardPage() {
   const [pedidoPacote, setPedidoPacote] =
     useState<string | null>(null);
 
+  // O gate do dashboard confirma sempre no servidor (cookie httpOnly)
+  // que a sessão é válida — nunca confia só nos dados guardados em
+  // sessionStorage, que qualquer script na página poderia forjar.
   useEffect(() => {
-    const residenteSalvo =
-      obterResidenteGuardado();
+    let cancelado = false;
 
-    if (!residenteSalvo) {
-      router.replace("/login");
-      return;
+    async function confirmarSessao() {
+      const residenteSalvo = obterResidenteGuardado();
+      const sessaoValida = await verificarSessao();
+
+      if (cancelado) {
+        return;
+      }
+
+      if (!sessaoValida || !residenteSalvo) {
+        router.replace("/login");
+        return;
+      }
+
+      setResidente(residenteSalvo);
+      setCarregando(false);
     }
 
-    setResidente(residenteSalvo);
-    setCarregando(false);
+    confirmarSessao();
+
+    return () => {
+      cancelado = true;
+    };
   }, [router]);
 
   useEffect(() => {
@@ -217,6 +236,48 @@ export default function DashboardPage() {
     terminarSessao();
     router.push("/");
     router.refresh();
+  }
+
+  // O residenteId nunca é aceite do formulário pelo servidor — só serve
+  // como referência local. A sessão é sempre confirmada pelo cookie
+  // httpOnly no servidor; o cabeçalho CSRF prova que o pedido partiu do
+  // nosso site (antes feito por submissão nativa do <form>, que não
+  // permite cabeçalhos personalizados).
+  async function aoSubmeterRecarga(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    const formulario = event.currentTarget;
+
+    const novaJanela = window.open("", "_blank");
+    const dadosFormulario = new FormData(formulario);
+    const params = new URLSearchParams();
+
+    dadosFormulario.forEach((valor, chave) => {
+      if (typeof valor === "string") {
+        params.append(chave, valor);
+      }
+    });
+
+    try {
+      const resposta = await fetch("/api/pagamento/iniciar", {
+        method: "POST",
+        headers: obterCabecalhoCsrf(),
+        body: params,
+      });
+
+      const html = await resposta.text();
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+
+      if (novaJanela) {
+        novaJanela.location.href = url;
+      }
+    } catch {
+      novaJanela?.close();
+      alert("Não foi possível iniciar o pagamento.");
+    }
   }
 
   function abrirSeletorFotoCartao() {
@@ -522,15 +583,8 @@ export default function DashboardPage() {
 
               <form
                 className="recharge-form"
-                action="/api/pagamento/iniciar"
-                method="POST"
-                target="_blank"
+                onSubmit={aoSubmeterRecarga}
               >
-                <input
-                  type="hidden"
-                  name="residenteId"
-                  value={residente.id}
-                />
                 <input
                   type="hidden"
                   name="username"

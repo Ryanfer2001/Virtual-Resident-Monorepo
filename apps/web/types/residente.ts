@@ -66,6 +66,7 @@ export interface RegistoResponse {
   mensagem?: string;
   residenteId?: string;
   residente?: Residente;
+  token?: string;
 }
 
 export interface EnviarFotosPayload {

@@ -187,10 +187,24 @@ function paginaRetornoPagamento({
 
 async function iniciarPagamento(req, res) {
   try {
+    const residenteId = req.utilizador?.id;
+
+    if (!residenteId) {
+      return res
+        .status(401)
+        .type("html")
+        .send(
+          paginaErroPagamento(
+            "Sessão inválida. Inicia sessão novamente."
+          )
+        );
+    }
+
     const preparacao =
-      sispService.prepararPedidoPagamento(
-        req.body || {}
-      );
+      sispService.prepararPedidoPagamento({
+        ...(req.body || {}),
+        residenteId
+      });
 
     /*
      * Guarda a tentativa antes de enviar

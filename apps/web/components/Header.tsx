@@ -13,8 +13,8 @@ interface HeaderProps {
 export default function Header({ residente }: HeaderProps) {
   const router = useRouter();
 
-  function sair() {
-    terminarSessao();
+  async function sair() {
+    await terminarSessao();
     router.push("/");
     router.refresh();
   }

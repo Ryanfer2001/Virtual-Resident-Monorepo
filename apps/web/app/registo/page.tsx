@@ -378,11 +378,14 @@ export default function RegistoPage() {
         (fotoRosto || fotoBI)
       ) {
         try {
-          await enviarFotosResidente({
-            residenteId: resposta.residenteId,
-            fotoPerfilBase64: fotoRosto,
-            fotoBIBase64: fotoBI,
-          });
+          await enviarFotosResidente(
+            {
+              residenteId: resposta.residenteId,
+              fotoPerfilBase64: fotoRosto,
+              fotoBIBase64: fotoBI,
+            },
+            resposta.token,
+          );
         } catch (erroFotos) {
           console.warn(
             "Conta criada, mas as fotos não foram enviadas:",

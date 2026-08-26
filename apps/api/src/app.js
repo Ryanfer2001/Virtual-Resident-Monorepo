@@ -48,11 +48,29 @@ app.use(helmet());
 |--------------------------------------------------------------------------
 | CORS
 |--------------------------------------------------------------------------
+|
+| Nunca cai para "*": se FRONTEND_URL não estiver definida, o CORS fica
+| desativado (origin: false) em vez de aceitar qualquer site — combinado
+| com endpoints sensíveis, um "*" por omissão permitiria a um site
+| malicioso fazer pedidos ao browser de uma vítima. FRONTEND_URL aceita
+| uma ou mais origens separadas por vírgula (ex.: www + domínio raiz).
+|
 */
+
+const origensPermitidas = (process.env.FRONTEND_URL || "")
+  .split(",")
+  .map((origem) => origem.trim())
+  .filter(Boolean);
+
+if (origensPermitidas.length === 0) {
+  console.warn(
+    "FRONTEND_URL não está configurada — CORS desativado (nenhuma origem cross-site é aceite)."
+  );
+}
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "*",
+    origin: origensPermitidas.length > 0 ? origensPermitidas : false,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   })
@@ -111,6 +129,16 @@ app.get("/api/teste", (req, res) => {
 */
 
 app.get("/api/database/teste", async (req, res) => {
+  // Só disponível fora de produção: sem autenticação, e em caso de falha
+  // podia devolver detalhes internos da ligação MySQL a quem quer que
+  // acedesse ao endpoint.
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({
+      sucesso: false,
+      mensagem: "Endpoint não encontrado."
+    });
+  }
+
   try {
     const [rows] = await pool.query(
       "SELECT NOW() AS dataServidor"
@@ -126,8 +154,7 @@ app.get("/api/database/teste", async (req, res) => {
 
     return res.status(500).json({
       sucesso: false,
-      mensagem: "Não foi possível ligar ao MySQL.",
-      erro: erro.message
+      mensagem: "Não foi possível ligar ao MySQL."
     });
   }
 });

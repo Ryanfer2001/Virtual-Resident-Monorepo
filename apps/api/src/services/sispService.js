@@ -6,6 +6,16 @@ const crypto = require("crypto");
 |--------------------------------------------------------------------------
 */
 
+/*
+ * Sem tabela de preços por pacote no servidor, o valor da recarga continua
+ * a ser escolhido pelo residente — mas nunca sem limite. Um teto razoável
+ * evita que um pedido de pagamento com um valor absurdo (erro ou abuso)
+ * polua a tabela de pagamentos; quem paga continua a ter de completar o
+ * 3DS com o próprio cartão, então isto é defesa em profundidade, não a
+ * única proteção.
+ */
+const VALOR_MAXIMO_PAGAMENTO_CVE = 500000;
+
 function obterConfiguracaoSisp() {
   const configuracao = {
     posID: String(
@@ -566,6 +576,12 @@ function prepararPedidoPagamento(dados = {}) {
   ) {
     throw new Error(
       "O valor do pagamento deve ser superior a zero."
+    );
+  }
+
+  if (valor > VALOR_MAXIMO_PAGAMENTO_CVE) {
+    throw new Error(
+      `O valor do pagamento não pode exceder ${VALOR_MAXIMO_PAGAMENTO_CVE} CVE.`
     );
   }
 
