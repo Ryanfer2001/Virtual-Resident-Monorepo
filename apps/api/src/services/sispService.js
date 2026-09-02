@@ -261,6 +261,8 @@ function gerarSHA512Base64(valor) {
 | + posID sem espaços
 | + currency sem espaços/zeros à esquerda
 | + transactionCode sem espaços
+| + entityCode sem zeros à esquerda (apenas transactionCode 2 ou 3)
+| + referenceNumber sem zeros à esquerda (apenas transactionCode 2 ou 3)
 |
 | Para transactionCode 1 não entram:
 | entityCode
@@ -276,7 +278,9 @@ function gerarFingerPrint({
   merchantSession,
   posID,
   currency,
-  transactionCode
+  transactionCode,
+  entityCode,
+  referenceNumber
 }) {
   const amountNumerico = Number(amount);
 
@@ -315,6 +319,32 @@ function gerarFingerPrint({
     transactionCode
   ).replace(/\s+/g, "");
 
+  let entityCodeCampo = "";
+  let referenceNumberCampo = "";
+
+  if (
+    transactionCodeLimpo === "2" ||
+    transactionCodeLimpo === "3"
+  ) {
+    entityCodeCampo =
+      removerZerosEsquerda(entityCode);
+
+    referenceNumberCampo =
+      removerZerosEsquerda(referenceNumber);
+
+    if (!entityCodeCampo) {
+      throw new Error(
+        "entityCode é obrigatório para gerar o FingerPrint deste transactionCode."
+      );
+    }
+
+    if (!referenceNumberCampo) {
+      throw new Error(
+        "referenceNumber é obrigatório para gerar o FingerPrint deste transactionCode."
+      );
+    }
+  }
+
   const mensagem =
     posAutCodeHash +
     TimeStamp +
@@ -323,7 +353,9 @@ function gerarFingerPrint({
     merchantSessionLimpa +
     posIDLimpo +
     currencyLimpa +
-    transactionCodeLimpo;
+    transactionCodeLimpo +
+    entityCodeCampo +
+    referenceNumberCampo;
 
   return gerarSHA512Base64(mensagem);
 }
@@ -798,6 +830,210 @@ function prepararPedidoPagamento(dados = {}) {
     }
   };
 }
+
+/*
+|--------------------------------------------------------------------------
+| Preparar pedido de Pagamento de Serviço (TC10)
+|--------------------------------------------------------------------------
+|
+| transactionCode = "2", entityCode e referenceNumber vêm do chamador
+| (nunca fixos aqui). Não inclui purchaseRequest: os parâmetros
+| adicionais de processamento 3DSServer/purchaseRequest aplicam-se,
+| segundo a documentação SISP, apenas a transactionCode = "1" — não
+| devem fazer parte do pedido de transactionCode = "2".
+|--------------------------------------------------------------------------
+*/
+
+function prepararPedidoPagamentoServico(dados = {}) {
+  const config =
+    obterConfiguracaoSisp();
+
+  const transactionCode = "2";
+
+  if (
+    dados.transactionCode !== undefined &&
+    String(dados.transactionCode).trim() !== transactionCode
+  ) {
+    throw new Error(
+      'O transactionCode do Pagamento de Serviço deve ser "2".'
+    );
+  }
+
+  const valor = Number(
+    dados.valor ||
+    dados.amount ||
+    0
+  );
+
+  if (
+    !Number.isFinite(valor) ||
+    valor <= 0
+  ) {
+    throw new Error(
+      "O valor do pagamento deve ser superior a zero."
+    );
+  }
+
+  if (valor > VALOR_MAXIMO_PAGAMENTO_CVE) {
+    throw new Error(
+      `O valor do pagamento não pode exceder ${VALOR_MAXIMO_PAGAMENTO_CVE} CVE.`
+    );
+  }
+
+  /*
+   * A SISP aceita apenas montantes inteiros em CVE.
+   */
+  if (!Number.isInteger(valor)) {
+    throw new Error(
+      "O valor do pagamento deve ser um número inteiro em CVE."
+    );
+  }
+
+  const amount =
+    String(valor);
+
+  const entityCode = String(
+    dados.entityCode ?? ""
+  ).trim();
+
+  if (
+    !entityCode ||
+    !/^\d+$/.test(entityCode)
+  ) {
+    throw new Error(
+      "O entityCode é obrigatório e deve conter apenas números."
+    );
+  }
+
+  if (entityCode.length > 5) {
+    throw new Error(
+      "O entityCode deve possuir no máximo 5 dígitos."
+    );
+  }
+
+  const referenceNumber = String(
+    dados.referenceNumber ?? ""
+  ).trim();
+
+  if (
+    !referenceNumber ||
+    !/^\d+$/.test(referenceNumber)
+  ) {
+    throw new Error(
+      "O referenceNumber é obrigatório e deve conter apenas números."
+    );
+  }
+
+  if (referenceNumber.length > 9) {
+    throw new Error(
+      "O referenceNumber deve possuir no máximo 9 dígitos."
+    );
+  }
+
+  const merchantRef =
+    gerarReferencia("R");
+
+  const merchantSession =
+    gerarReferencia("S");
+
+  const TimeStamp =
+    gerarTimeStamp();
+
+  const FingerPrint =
+    gerarFingerPrint({
+      posAutCode:
+        config.posAutCode,
+
+      TimeStamp,
+
+      amount,
+
+      merchantRef,
+
+      merchantSession,
+
+      posID:
+        config.posID,
+
+      currency:
+        config.currency,
+
+      transactionCode,
+
+      entityCode,
+
+      referenceNumber
+    });
+
+  const pedido = {
+    transactionCode,
+
+    posID:
+      config.posID,
+
+    merchantRef,
+
+    merchantSession,
+
+    amount,
+
+    currency:
+      config.currency,
+
+    is3DSec: "1",
+
+    urlMerchantResponse:
+      config.merchantResponseUrl,
+
+    languageMessages:
+      config.language,
+
+    FingerPrint,
+
+    FingerPrintVersion: "1",
+
+    TimeStamp,
+
+    entityCode,
+
+    referenceNumber
+  };
+
+  const corpo =
+    new URLSearchParams(
+      pedido
+    ).toString();
+
+  /*
+   * Nunca mostrar FingerPrint nos logs.
+   */
+  const pedidoSeguro = {
+    ...pedido,
+
+    FingerPrint:
+      "[REMOVIDO]"
+  };
+
+  return {
+    url:
+      config.url,
+
+    corpo,
+
+    pedidoSeguro,
+
+    pagamento: {
+      valor,
+      amount,
+      entityCode,
+      referenceNumber,
+      merchantRef,
+      merchantSession,
+      TimeStamp
+    }
+  };
+}
+
 /*
 |--------------------------------------------------------------------------
 | Preparar números para o FingerPrint da resposta
@@ -1262,6 +1498,7 @@ async function consultarEstadoTransacao(merchantRef) {
 
 module.exports = {
   prepararPedidoPagamento,
+  prepararPedidoPagamentoServico,
   validarResultFingerPrint,
   consultarEstadoTransacao
 };
