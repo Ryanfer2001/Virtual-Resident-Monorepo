@@ -21,7 +21,7 @@ import {
 } from "@/lib/api";
 
 import { PAISES } from "@/lib/paises";
-import { PACOTES } from "@/lib/pacotes";
+import { PACOTES, obterPrecosPacotes, formatarPrecoCVE } from "@/lib/pacotes";
 
 import type {
   RegistoData,
@@ -112,6 +112,9 @@ export default function RegistoPage() {
   const [tipoFotoAtual, setTipoFotoAtual] =
     useState<TipoFoto>("rosto");
 
+  const [precosPacotes, setPrecosPacotes] =
+    useState<Record<string, number>>({});
+
   const videoRef =
     useRef<HTMLVideoElement | null>(null);
 
@@ -163,6 +166,17 @@ export default function RegistoPage() {
       });
       pacoteSelectRef.current?.focus();
     });
+  }, []);
+
+  useEffect(() => {
+    obterPrecosPacotes()
+      .then(setPrecosPacotes)
+      .catch((erro) => {
+        console.error(
+          "Não foi possível obter os preços dos pacotes:",
+          erro,
+        );
+      });
   }, []);
 
   async function abrirCamera(tipo: TipoFoto) {
@@ -581,10 +595,12 @@ export default function RegistoPage() {
                             key={plano.nome}
                             value={plano.nome}
                           >
-                            {plano.nome} —{" "}
-                            {plano.preco}
+                            {plano.nome}
+                            {precosPacotes[plano.id] !== undefined && (
+                              <> — {formatarPrecoCVE(precosPacotes[plano.id])}</>
+                            )}
                           </option>
-                          
+
                         ),
                       )}
                       

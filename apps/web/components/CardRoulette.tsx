@@ -2,17 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { PACOTES, formatarPrecoCVE, type PacoteId } from "@/lib/pacotes";
+
 export type CardTipo = "visitor" | "diaspora" | "business" | "student";
 
 export type RouletteCard = {
   id: string;
   tipo: CardTipo;
   plano: string;
-  preco: string;
 };
 
 interface CardRouletteProps {
   onSelect?: (card: RouletteCard) => void;
+  precosPacotes?: Record<string, number>;
 }
 
 const TIPO_LABEL: Record<CardTipo, string> = {
@@ -22,20 +24,33 @@ const TIPO_LABEL: Record<CardTipo, string> = {
   student: "Student",
 };
 
-const CARDS: RouletteCard[] = [
-  { id: "visitor-basico", tipo: "visitor", plano: "Visitor Básico", preco: "0 CVE" },
-  { id: "diaspora-start", tipo: "diaspora", plano: "Diaspora Start", preco: "2.500 CVE" },
-  { id: "business-starter", tipo: "business", plano: "Business Starter", preco: "5.000 CVE" },
-  { id: "student-essencial", tipo: "student", plano: "Student Essencial", preco: "0 CVE" },
-  { id: "visitor-standard", tipo: "visitor", plano: "Visitor Standard", preco: "1.500 CVE" },
-  { id: "diaspora-completo", tipo: "diaspora", plano: "Diaspora Completo", preco: "5.000 CVE" },
-  { id: "business-growth", tipo: "business", plano: "Business Growth", preco: "10.000 CVE" },
-  { id: "student-ativo", tipo: "student", plano: "Student Ativo", preco: "1.000 CVE" },
-  { id: "visitor-plus", tipo: "visitor", plano: "Visitor Plus", preco: "3.000 CVE" },
-  { id: "diaspora-premium", tipo: "diaspora", plano: "Diaspora Premium", preco: "10.000 CVE" },
-  { id: "business-elite", tipo: "business", plano: "Business Elite", preco: "20.000 CVE" },
-  { id: "student-pro", tipo: "student", plano: "Student Pro", preco: "2.000 CVE" },
-];
+/*
+ * Mesma ordem visual de sempre (por nível, não por categoria): tier 1 de
+ * cada categoria, depois tier 2 de cada, depois tier 3 de cada. Derivado de
+ * PACOTES para não duplicar nome/categoria/id. O preço nunca vem daqui —
+ * chega por prop (precosPacotes), já obtido por quem usa este componente.
+ */
+const ORDEM_CATEGORIAS: PacoteId[] = ["visitor", "diaspora", "business", "student"];
+
+const CARDS: RouletteCard[] = (() => {
+  const porCategoria = Object.fromEntries(
+    PACOTES.map((categoria) => [categoria.id, categoria]),
+  ) as Record<PacoteId, (typeof PACOTES)[number]>;
+
+  const numeroTiers = Math.max(...PACOTES.map((categoria) => categoria.planos.length));
+  const cartoes: RouletteCard[] = [];
+
+  for (let tier = 0; tier < numeroTiers; tier++) {
+    for (const categoriaId of ORDEM_CATEGORIAS) {
+      const plano = porCategoria[categoriaId]?.planos[tier];
+      if (plano) {
+        cartoes.push({ id: plano.id, tipo: categoriaId, plano: plano.nome });
+      }
+    }
+  }
+
+  return cartoes;
+})();
 
 const N = CARDS.length;
 const BASE_ANGLE = (2 * Math.PI) / N;
@@ -57,7 +72,7 @@ function normalizeAngle(angle: number) {
   return ((angle % twoPi) + twoPi) % twoPi;
 }
 
-export default function CardRoulette({ onSelect }: CardRouletteProps) {
+export default function CardRoulette({ onSelect, precosPacotes = {} }: CardRouletteProps) {
   const [t0, setT0] = useState(0);
   const [stageScale, setStageScale] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -188,7 +203,7 @@ export default function CardRoulette({ onSelect }: CardRouletteProps) {
               onClick={() => handleCardClick(index, card)}
               onMouseEnter={() => (pausedRef.current = true)}
               onMouseLeave={() => (pausedRef.current = false)}
-              aria-label={`${TIPO_LABEL[card.tipo]} · ${card.plano} · ${card.preco}`}
+              aria-label={`${TIPO_LABEL[card.tipo]} · ${card.plano}${precosPacotes[card.id] !== undefined ? ` · ${formatarPrecoCVE(precosPacotes[card.id])}` : ""}`}
               aria-current={isFocal}
               tabIndex={opacity === 0 ? -1 : 0}
             >
@@ -198,7 +213,7 @@ export default function CardRoulette({ onSelect }: CardRouletteProps) {
               </div>
               <div className="roulette-card-body">
                 <strong className="roulette-card-plan">{card.plano}</strong>
-                <span className="roulette-card-price">{card.preco}</span>
+                <span className="roulette-card-price">{formatarPrecoCVE(precosPacotes[card.id])}</span>
               </div>
               <div className="roulette-card-footer">
                 <span className="roulette-card-chip" aria-hidden="true" />

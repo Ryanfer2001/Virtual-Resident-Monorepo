@@ -5,8 +5,8 @@ export type PacoteId =
   | "student";
 
 export interface SubPacote {
+  id: string;
   nome: string;
-  preco: string;
   descricao: string;
 }
 
@@ -16,28 +16,31 @@ export interface PacoteCategoria {
   planos: SubPacote[];
 }
 
+/*
+ * Nome, categoria e descrição dos 12 pacotes — estrutura estável, sem
+ * preço. O preço oficial (precoCVE) nunca fica hardcoded aqui; vem sempre
+ * de GET /api/pacotes (ver obterPrecosPacotes), que lê
+ * apps/api/src/config/catalogoPacotes.js — a única fonte de verdade.
+ */
 export const PACOTES: PacoteCategoria[] = [
   {
     id: "visitor",
     titulo: "VISITOR",
     planos: [
       {
+        id: "visitor-basico",
         nome: "Visitor Básico",
-        preco: "0 CVE",
-        descricao:
-          "Acesso à comunidade e eventos abertos.",
+        descricao: "Acesso à comunidade e eventos abertos.",
       },
       {
+        id: "visitor-standard",
         nome: "Visitor Standard",
-        preco: "1.500 CVE",
-        descricao:
-          "Tours guiados e acesso à Smart City Akademy.",
+        descricao: "Tours guiados e acesso à Smart City Akademy.",
       },
       {
+        id: "visitor-plus",
         nome: "Visitor Plus",
-        preco: "3.000 CVE",
-        descricao:
-          "Acesso prioritário a eventos e parceiros de investimento.",
+        descricao: "Acesso prioritário a eventos e parceiros de investimento.",
       },
     ],
   },
@@ -46,22 +49,19 @@ export const PACOTES: PacoteCategoria[] = [
     titulo: "DIASPORA",
     planos: [
       {
+        id: "diaspora-start",
         nome: "Diaspora Start",
-        preco: "2.500 CVE",
-        descricao:
-          "2.500 CVE de saldo e 20 swipes na cantina.",
+        descricao: "2.500 CVE de saldo e 20 swipes na cantina.",
       },
       {
+        id: "diaspora-completo",
         nome: "Diaspora Completo",
-        preco: "5.000 CVE",
-        descricao:
-          "5.000 CVE de saldo, 50 swipes e entrada em todos os eventos.",
+        descricao: "5.000 CVE de saldo, 50 swipes e entrada em todos os eventos.",
       },
       {
+        id: "diaspora-premium",
         nome: "Diaspora Premium",
-        preco: "10.000 CVE",
-        descricao:
-          "10.000 CVE de saldo, swipes ilimitados e QR prioritário.",
+        descricao: "10.000 CVE de saldo, swipes ilimitados e QR prioritário.",
       },
     ],
   },
@@ -70,22 +70,19 @@ export const PACOTES: PacoteCategoria[] = [
     titulo: "BUSINESS",
     planos: [
       {
+        id: "business-starter",
         nome: "Business Starter",
-        preco: "5.000 CVE",
-        descricao:
-          "Registo do negócio e acesso à comunidade empresarial.",
+        descricao: "Registo do negócio e acesso à comunidade empresarial.",
       },
       {
+        id: "business-growth",
         nome: "Business Growth",
-        preco: "10.000 CVE",
-        descricao:
-          "Abertura de conta bancária e incubação incluídas.",
+        descricao: "Abertura de conta bancária e incubação incluídas.",
       },
       {
+        id: "business-elite",
         nome: "Business Elite",
-        preco: "20.000 CVE",
-        descricao:
-          "Acesso direto aos parceiros certos e mentoria dedicada.",
+        descricao: "Acesso direto aos parceiros certos e mentoria dedicada.",
       },
     ],
   },
@@ -94,23 +91,60 @@ export const PACOTES: PacoteCategoria[] = [
     titulo: "STUDENT",
     planos: [
       {
+        id: "student-essencial",
         nome: "Student Essencial",
-        preco: "0 CVE",
-        descricao:
-          "Acesso à Smart City Akademy.",
+        descricao: "Acesso à Smart City Akademy.",
       },
       {
+        id: "student-ativo",
         nome: "Student Ativo",
-        preco: "1.000 CVE",
-        descricao:
-          "Inclui estágio (internship) e workshops.",
+        descricao: "Inclui estágio (internship) e workshops.",
       },
       {
+        id: "student-pro",
         nome: "Student Pro",
-        preco: "2.000 CVE",
-        descricao:
-          "Acesso total ao startup program e mentoria de carreira.",
+        descricao: "Acesso total ao startup program e mentoria de carreira.",
       },
     ],
   },
 ];
+
+/*
+|--------------------------------------------------------------------------
+| Preços oficiais — obtidos do backend, nunca hardcoded aqui
+|--------------------------------------------------------------------------
+*/
+
+interface PacotePublico {
+  id: string;
+  nome: string;
+  categoria: string;
+  precoCVE: number;
+  descricao: string;
+}
+
+export async function obterPrecosPacotes(): Promise<Record<string, number>> {
+  const resposta = await fetch("/api/pacotes", { cache: "no-store" });
+
+  if (!resposta.ok) {
+    throw new Error("Não foi possível obter os preços dos pacotes.");
+  }
+
+  const dados: PacotePublico[] = await resposta.json();
+
+  return Object.fromEntries(
+    dados.map((pacote) => [pacote.id, pacote.precoCVE]),
+  );
+}
+
+export function formatarPrecoCVE(precoCVE: number | undefined): string {
+  if (precoCVE === undefined) {
+    return "";
+  }
+
+  const formatado = precoCVE
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+  return `${formatado} CVE`;
+}

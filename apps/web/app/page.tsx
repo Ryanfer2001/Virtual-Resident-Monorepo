@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 
 import { useState , useEffect} from 'react'
 import { obterResidenteGuardado, terminarSessao } from "@/lib/auth";
-import { PACOTES, type PacoteId } from "@/lib/pacotes";
+import { PACOTES, obterPrecosPacotes, formatarPrecoCVE, type PacoteId } from "@/lib/pacotes";
 
 const CardRoulette = dynamic(() => import("@/components/CardRoulette"), { ssr: false });
 
@@ -25,6 +25,7 @@ const subPlanosPorPacote = Object.fromEntries(
   const [qrTime, setQrTime] = useState(30);
   const [pacoteAtivo, setPacoteAtivo] = useState<PacoteId | null>(null);
   const [pacoteParaMudar, setPacoteParaMudar] = useState<string | null>(null);
+  const [precosPacotes, setPrecosPacotes] = useState<Record<string, number>>({});
   const router = useRouter();
 
   // Restaura a sessão guardada (login feito na página /login) para que o
@@ -35,6 +36,27 @@ const subPlanosPorPacote = Object.fromEntries(
       setUser(residenteSalvo);
     }
   }, []);
+
+  useEffect(() => {
+    obterPrecosPacotes()
+      .then(setPrecosPacotes)
+      .catch((erro) => {
+        console.error("Não foi possível obter os preços dos pacotes:", erro);
+      });
+  }, []);
+
+  function menorPrecoCategoria(categoria: PacoteId): number | undefined {
+    const precos = subPlanosPorPacote[categoria].planos
+      .map((plano) => precosPacotes[plano.id])
+      .filter((preco): preco is number => preco !== undefined);
+
+    return precos.length > 0 ? Math.min(...precos) : undefined;
+  }
+
+  function formatarAmount(categoria: PacoteId): string {
+    const preco = menorPrecoCategoria(categoria);
+    return preco !== undefined ? formatarPrecoCVE(preco).replace(/ CVE$/, "") : "";
+  }
 
   function abrirPopupPacote(pacote: PacoteId) {
     setPacoteAtivo(pacote);
@@ -127,7 +149,7 @@ const subPlanosPorPacote = Object.fromEntries(
             </div>
 
             <div className="hero-visual">
-              <CardRoulette onSelect={(card) => irParaRegisto(card.plano)} />
+              <CardRoulette onSelect={(card) => irParaRegisto(card.plano)} precosPacotes={precosPacotes} />
             </div>
           </div>
         </section>
@@ -398,7 +420,8 @@ const subPlanosPorPacote = Object.fromEntries(
               <div className="pkg-name"> VISITOR</div>
               <p>VISIT, DISCOVER & EXPLORE</p>
               <div className="pkg-price">
-                <div className="amount">0</div>
+                <div className="pkg-price-prefixo">A partir de</div>
+                <div className="amount">{formatarAmount('visitor')}</div>
                 <div className="currency">CVE</div>
               </div>
               <div className="pkg-divider"></div>
@@ -416,7 +439,8 @@ const subPlanosPorPacote = Object.fromEntries(
               <div className="pkg-label">Ilhas</div>
               <div className="pkg-name">DIASPORA</div>
               <div className="pkg-price">
-                <div className="amount">0</div>
+                <div className="pkg-price-prefixo">A partir de</div>
+                <div className="amount">{formatarAmount('diaspora')}</div>
                 <div className="currency">CVE</div>
               </div>
               <div className="pkg-divider"></div>
@@ -433,7 +457,8 @@ const subPlanosPorPacote = Object.fromEntries(
               <div className="pkg-label">Invest</div>
               <div className="pkg-name">BUSINESS</div>
               <div className="pkg-price">
-                <div className="amount">0</div>
+                <div className="pkg-price-prefixo">A partir de</div>
+                <div className="amount">{formatarAmount('business')}</div>
                 <div className="currency">CVE</div>
               </div>
               <div className="pkg-divider"></div>
@@ -452,7 +477,8 @@ const subPlanosPorPacote = Object.fromEntries(
               <div className="pkg-name"> Student</div>
               <p>VISIT, DISCOVER & EXPLORE</p>
               <div className="pkg-price">
-                <div className="amount">0</div>
+                <div className="pkg-price-prefixo">A partir de</div>
+                <div className="amount">{formatarAmount('student')}</div>
                 <div className="currency">CVE</div>
               </div>
               <div className="pkg-divider"></div>
@@ -485,7 +511,7 @@ const subPlanosPorPacote = Object.fromEntries(
                 >
                   <div className="subplano-item-topo">
                     <span className="subplano-nome">{plano.nome}</span>
-                    <span className="subplano-preco">{plano.preco}</span>
+                    <span className="subplano-preco">{formatarPrecoCVE(precosPacotes[plano.id])}</span>
                   </div>
                   <p className="subplano-descricao">{plano.descricao}</p>
                 </button>

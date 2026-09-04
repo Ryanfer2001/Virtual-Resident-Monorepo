@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const pagamentoRoutes = require("./routes/pagamentoRoutes");
 const residenteRoutes = require("./routes/residenteRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const catalogoRoutes = require("./routes/catalogoRoutes");
 const residenteController = require("./controllers/residenteController");
 const app = express();
 
@@ -188,6 +189,18 @@ app.use("/api/auth", authRoutes);
 app.use("/api/residentes", residenteRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/pagamento", pagamentoRoutes);
+
+/*
+|--------------------------------------------------------------------------
+| Catálogo de pacotes (público, só leitura)
+|--------------------------------------------------------------------------
+|
+| Exemplo:
+| GET /api/pacotes
+|
+*/
+
+app.use("/api/pacotes", catalogoRoutes);
 
 /*
 |--------------------------------------------------------------------------
