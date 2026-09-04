@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build && node scripts/dereference-node-modules.js",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "node -e \"const fs=require('fs'),path=require('path');function d(dir,seen){if(seen.has(dir))return;seen.add(dir);let e;try{e=fs.readdirSync(dir,{withFileTypes:true})}catch(err){return}for(const x of e){const p=path.join(dir,x.name);if(x.isSymbolicLink()){let r;try{r=fs.realpathSync(p)}catch(err){continue}fs.rmSync(p,{recursive:true,force:true});fs.cpSync(r,p,{recursive:true,dereference:true});d(p,seen)}else if(x.isDirectory()){d(p,seen)}}}d(path.join(process.cwd(),'node_modules'),new Set());console.log('postinstall: dereferenced node_modules symlinks')\""
+    "lint": "eslint"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.6",
