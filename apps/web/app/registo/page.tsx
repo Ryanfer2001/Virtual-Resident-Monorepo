@@ -40,7 +40,7 @@ const estadoInicial: RegistoData = {
   municipio: "",
   username: "",
   password: "",
-  pacote: "",
+  pacoteId: "",
   pais: "Cabo Verde",
   codigoPostal: "7600",
 };
@@ -143,20 +143,17 @@ export default function RegistoPage() {
       return;
     }
 
-    const nomesValidos = PACOTES.flatMap(
-      (categoria) =>
-        categoria.planos.map(
-          (plano) => plano.nome,
-        ),
-    );
+    const planoEncontrado = PACOTES.flatMap(
+      (categoria) => categoria.planos,
+    ).find((plano) => plano.nome === pacoteParam);
 
-    if (!nomesValidos.includes(pacoteParam)) {
+    if (!planoEncontrado) {
       return;
     }
 
     setDados((dadosAtuais) => ({
       ...dadosAtuais,
-      pacote: pacoteParam,
+      pacoteId: planoEncontrado.id,
     }));
 
     requestAnimationFrame(() => {
@@ -291,7 +288,7 @@ export default function RegistoPage() {
       "municipio",
       "username",
       "password",
-      "pacote",
+      "pacoteId",
     ];
 
     for (const campo of camposObrigatorios) {
@@ -575,9 +572,9 @@ export default function RegistoPage() {
                 Pacote *
                 <select
                   ref={pacoteSelectRef}
-                  name="pacote"
+                  name="pacoteId"
                   className="btn-pacote"
-                  value={dados.pacote}
+                  value={dados.pacoteId}
                   onChange={alterarCampo}
                 >
                   <option value="" disabled>
@@ -592,8 +589,8 @@ export default function RegistoPage() {
                       {categoria.planos.map(
                         (plano) => (
                           <option
-                            key={plano.nome}
-                            value={plano.nome}
+                            key={plano.id}
+                            value={plano.id}
                           >
                             {plano.nome}
                             {precosPacotes[plano.id] !== undefined && (
@@ -603,7 +600,7 @@ export default function RegistoPage() {
 
                         ),
                       )}
-                      
+
                     </optgroup>
                   ))}
                   

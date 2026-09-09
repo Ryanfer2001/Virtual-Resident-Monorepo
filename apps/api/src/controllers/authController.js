@@ -205,6 +205,7 @@ async function login(req, res) {
         municipio: residente.municipio,
 
         pacote: residente.pacote,
+        estadoPacote: residente.estadoPacote || "ativo",
         saldo: Number(residente.saldo || 0),
         swipes: Number(residente.swipes || 0),
         eventos: Boolean(residente.eventos),
@@ -298,7 +299,7 @@ async function registar(req, res) {
       municipio,
       pais,
       codigoPostal,
-      pacote
+      pacoteId
     } = req.body;
 
     if (
@@ -365,33 +366,57 @@ async function registar(req, res) {
       }
     }
 
-    const pacoteFinal = pacote || "inativo";
-
     /*
-     * "Pacote 1/2/3" ficam mantidos por compatibilidade com registos
-     * antigos que ainda possam enviar esses valores — não fazem parte do
-     * catálogo oficial dos 12 pacotes (apps/api/src/config/catalogoPacotes.js).
+     * O pacote é sempre resolvido pelo backend a partir do catálogo
+     * oficial (apps/api/src/config/catalogoPacotes.js), usando o id
+     * enviado pelo frontend — nunca pelo nome, e nunca por um preço ou
+     * benefícios enviados pelo browser. Um pacoteId que não exista no
+     * catálogo é recusado; não há fallback de benefícios legados para
+     * registos novos (BENEFICIOS_LEGADO continua a existir noutros
+     * pontos do fluxo de contas antigas, mas deixa de autorizar registos).
      */
-    const BENEFICIOS_LEGADO = {
-      "Pacote 1": { saldo: 0, swipes: 0, eventos: true, parking: false },
-      "Pacote 2": { saldo: 20000, swipes: 50, eventos: true, parking: false },
-      "Pacote 3": { saldo: 40000, swipes: 80, eventos: true, parking: true }
-    };
+    const pacoteIdLimpo = String(pacoteId || "").trim();
 
     const pacoteCatalogo =
-      catalogoPacotes.obterPorNome(pacoteFinal);
+      catalogoPacotes.obterPorId(pacoteIdLimpo);
 
-    const {
-      saldo,
-      swipes,
-      eventos,
-      parking
-    } = pacoteCatalogo || BENEFICIOS_LEGADO[pacoteFinal] || {
-      saldo: 0,
-      swipes: 0,
-      eventos: false,
-      parking: false
-    };
+    if (!pacoteCatalogo) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: "Pacote inválido."
+      });
+    }
+
+    const precoCVE = Number(pacoteCatalogo.precoCVE);
+
+    if (
+      !Number.isFinite(precoCVE) ||
+      !Number.isInteger(precoCVE) ||
+      precoCVE < 0
+    ) {
+      console.error(
+        "Configuração inválida do pacote no catálogo:",
+        { pacoteId: pacoteIdLimpo }
+      );
+
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: "Configuração inválida do pacote."
+      });
+    }
+
+    const pacoteGratuito = precoCVE === 0;
+
+    /*
+     * Pacotes pagos nunca recebem saldo/swipes/eventos/parking no
+     * registo — ficam "pendente_pagamento" até o pagamento SISP ser
+     * confirmado (ligação feita numa fase futura da ETAPA 2).
+     */
+    const saldo = pacoteGratuito ? pacoteCatalogo.saldo : 0;
+    const swipes = pacoteGratuito ? pacoteCatalogo.swipes : 0;
+    const eventos = pacoteGratuito ? pacoteCatalogo.eventos : false;
+    const parking = pacoteGratuito ? pacoteCatalogo.parking : false;
+    const estadoPacote = pacoteGratuito ? "ativo" : "pendente_pagamento";
 
     const qrToken =
       "QR-" +
@@ -414,11 +439,12 @@ async function registar(req, res) {
       municipio: municipio || "",
       pais: pais || "",
       codigoPostal: codigoPostal || "",
-      pacote: pacoteFinal,
+      pacote: pacoteCatalogo.nome,
       saldo,
       swipes,
       parking,
       eventos,
+      estadoPacote,
       qrToken,
       uid: "",
       estado: "pendente",
@@ -441,6 +467,7 @@ async function registar(req, res) {
             username: residenteCriado.username,
             email: residenteCriado.email,
             pacote: residenteCriado.pacote,
+            estadoPacote: residenteCriado.estadoPacote || "ativo",
             saldo: Number(residenteCriado.saldo || 0),
             swipes: Number(residenteCriado.swipes || 0),
             eventos: Boolean(residenteCriado.eventos),
@@ -543,6 +570,7 @@ async function loginLegado(req, res) {
         municipio: residente.municipio,
 
         pacote: residente.pacote,
+        estadoPacote: residente.estadoPacote || "ativo",
         saldo: Number(residente.saldo || 0),
         swipes: Number(residente.swipes || 0),
         eventos: Boolean(residente.eventos),
@@ -627,6 +655,7 @@ async function googleLoginLegado(req, res) {
         username: residente.username,
         email: residente.email,
         pacote: residente.pacote,
+        estadoPacote: residente.estadoPacote || "ativo",
         saldo: Number(residente.saldo || 0),
         swipes: Number(residente.swipes || 0),
         parking: residente.parking,

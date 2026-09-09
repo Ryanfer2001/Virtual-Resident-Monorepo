@@ -14,6 +14,7 @@ export interface Residente {
   codigoPostal?: string;
 
   pacote?: string;
+  estadoPacote?: string;
   saldo?: number;
   swipes?: number;
   eventos?: boolean;
@@ -56,7 +57,7 @@ export interface RegistoData {
   municipio: string;
   username: string;
   password: string;
-  pacote: string;
+  pacoteId: string;
   pais: string;
   codigoPostal: string;
 }

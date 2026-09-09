@@ -24,7 +24,7 @@ const CAMPOS_OBRIGATORIOS = [
   "municipio",
   "username",
   "password",
-  "pacote",
+  "pacoteId",
 ] as const;
 
 const REGEX_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

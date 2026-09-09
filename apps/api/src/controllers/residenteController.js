@@ -792,6 +792,24 @@ async function validarCartaoResidenteLegado(req, res) {
       });
     }
 
+    /*
+     * O cartão físico aprovado (estado = "ativo") não é suficiente: um
+     * pacote pago só fica "ativo" depois do pagamento SISP confirmado.
+     * Sem esta verificação, um residente com estadoPacote =
+     * "pendente_pagamento" teria entrada autorizada só por ter o cartão
+     * físico gerado, mesmo sem ter pago o pacote.
+     */
+    if (residente.estadoPacote !== "ativo") {
+      return res.status(200).json({
+        permitido: false,
+        mensagem: "Pacote pendente de pagamento.",
+        residente: residente.nome,
+        pacote: residente.pacote,
+        estado: residente.estado,
+        estadoPacote: residente.estadoPacote
+      });
+    }
+
     return res.status(200).json({
       permitido: true,
       mensagem: "Entrada no evento autorizada",

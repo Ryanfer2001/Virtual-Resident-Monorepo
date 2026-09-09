@@ -411,6 +411,12 @@ export default function DashboardPage() {
               "Sem pacote"
             }
             descricao="Plano do residente"
+            badge={
+              residente.estadoPacote &&
+              residente.estadoPacote !== "ativo"
+                ? "Pendente de pagamento"
+                : undefined
+            }
           />
 
           <DashboardCard
@@ -683,15 +689,22 @@ function DashboardCard({
   titulo,
   valor,
   descricao,
+  badge,
 }: {
   titulo: string;
   valor: string;
   descricao: string;
+  badge?: string;
 }) {
   return (
     <article className="dashboard-card">
       <span>{titulo}</span>
       <strong>{valor}</strong>
+      {badge && (
+        <span className="estado-badge estado-pendente">
+          {badge}
+        </span>
+      )}
       <small>{descricao}</small>
     </article>
   );

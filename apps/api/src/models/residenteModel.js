@@ -36,6 +36,7 @@ async function procurarPorId(id) {
       swipes,
       parking,
       eventos,
+      estadoPacote,
       qrToken,
       uid,
       estado,
@@ -107,6 +108,7 @@ async function criarResidente(dados) {
     swipes,
     parking,
     eventos,
+    estadoPacote,
     qrToken,
     uid,
     estado,
@@ -134,6 +136,7 @@ async function criarResidente(dados) {
       swipes,
       parking,
       eventos,
+      estadoPacote,
       qrToken,
       uid,
       estado,
@@ -166,7 +169,7 @@ async function criarResidente(dados) {
         '-',
         YEAR(NOW())
       ),
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     FROM residentes`,
     [
       nome,
@@ -186,6 +189,7 @@ async function criarResidente(dados) {
       swipes,
       parking,
       eventos,
+      estadoPacote,
       qrToken,
       uid || "",
       estado,
@@ -899,6 +903,7 @@ async function procurarPorUid(uid) {
        saldo,
        swipes,
        estado,
+       estadoPacote,
        uid
      FROM residentes
      WHERE UPPER(uid) = ?
