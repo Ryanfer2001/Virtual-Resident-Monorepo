@@ -70,6 +70,13 @@ export interface RegistoResponse {
   token?: string;
 }
 
+export interface IniciarPagamentoPacoteResponse {
+  sucesso: boolean;
+  mensagem?: string;
+  url?: string;
+  campos?: Record<string, string>;
+}
+
 export interface EnviarFotosPayload {
   residenteId: string;
   fotoPerfilBase64?: string;

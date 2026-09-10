@@ -1154,10 +1154,14 @@ function validarResultFingerPrint(dados = {}) {
   ).trim();
 
   /*
-   * Esta função trata, nesta fase,
-   * apenas a resposta de compra aprovada.
+   * Esta função aceita as respostas de compra aprovada "8" (TC1,
+   * recarga) e "P" (TC10, Pagamento de Serviço) — a fórmula do
+   * FingerPrint abaixo (GerarFingerPrintRespostaBemSucedida) é a mesma
+   * para ambas, documentada pela Vinti4 como comum aos tipos de
+   * sucesso. Os restantes tipos de sucesso (A/B/C/M) ficam fora do
+   * âmbito desta validação até serem necessários.
    */
-  if (messageType !== "8") {
+  if (!["8", "P"].includes(messageType)) {
     return {
       valido: false,
       motivo:

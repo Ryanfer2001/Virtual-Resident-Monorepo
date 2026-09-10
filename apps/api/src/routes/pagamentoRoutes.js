@@ -13,6 +13,12 @@ router.post(
   pagamentoController.iniciarPagamento
 );
 
+router.post(
+  "/pacote/iniciar",
+  authMiddleware.autenticarToken,
+  pagamentoController.iniciarPagamentoPacote
+);
+
 router.get(
   "/retorno",
   pagamentoController.processarRetorno

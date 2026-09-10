@@ -1,6 +1,7 @@
 import type {
   EnviarFotosPayload,
   EnviarFotosResponse,
+  IniciarPagamentoPacoteResponse,
   LoginResponse,
   RegistoData,
   RegistoResponse,
@@ -107,6 +108,28 @@ export async function enviarFotosResidente(
       }),
     },
     (status) => `Erro ao enviar as fotos (${status}).`,
+  );
+}
+
+/*
+ * Inicia o pagamento SISP (TC10) de um pacote pago logo a seguir ao
+ * registo, com o mesmo token de curta duração usado por
+ * enviarFotosResidente. Devolve só { url, campos } — nunca HTML pronto
+ * a injetar — para o chamador construir e submeter o próprio
+ * formulário para a SISP.
+ */
+export async function iniciarPagamentoPacote(
+  tokenSessaoRegisto: string,
+): Promise<IniciarPagamentoPacoteResponse> {
+  return pedido<IniciarPagamentoPacoteResponse>(
+    "/api/pagamento/pacote/iniciar",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${tokenSessaoRegisto}`,
+      },
+    },
+    (status) => `Erro ao iniciar o pagamento (${status}).`,
   );
 }
 

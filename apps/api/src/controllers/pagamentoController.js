@@ -1,5 +1,7 @@
 const sispService = require("../services/sispService");
 const pagamentoModel = require("../models/pagamentoModel");
+const catalogoPacotes = require("../config/catalogoPacotes");
+const residenteModel = require("../models/residenteModel");
 
 /*
 |--------------------------------------------------------------------------
@@ -423,6 +425,216 @@ async function iniciarPagamento(req, res) {
 
 /*
 |--------------------------------------------------------------------------
+| Iniciar pagamento de pacote — TC10 (Pagamento de Serviço)
+|--------------------------------------------------------------------------
+|
+| residenteId vem sempre do token (nunca do body). O preço vem sempre do
+| catálogo oficial, a partir do pacote já gravado no residente — nunca
+| de valor/precoCVE/benefícios enviados pelo cliente. entityCode e
+| referenceNumber vêm de variáveis de ambiente (valores de
+| teste/certificação, nunca fixos no código). Só é permitido um
+| pagamento de pacote "pendente" de cada vez por residente
+| (pagamentoModel.criarPagamentoPacotePendenteUnico).
+|--------------------------------------------------------------------------
+*/
+
+async function iniciarPagamentoPacote(req, res) {
+  try {
+    const residenteId = req.utilizador?.id;
+
+    if (!residenteId) {
+      return res.status(401).json({
+        sucesso: false,
+        mensagem: "Sessão inválida. Regista-te novamente."
+      });
+    }
+
+    const residente =
+      await residenteModel.procurarPorId(residenteId);
+
+    if (!residente) {
+      return res.status(404).json({
+        sucesso: false,
+        mensagem: "Residente não encontrado."
+      });
+    }
+
+    if (residente.estadoPacote !== "pendente_pagamento") {
+      return res.status(409).json({
+        sucesso: false,
+        mensagem: "Este pacote já não está pendente de pagamento."
+      });
+    }
+
+    const pacoteCatalogo =
+      catalogoPacotes.obterPorNome(residente.pacote);
+
+    if (!pacoteCatalogo) {
+      console.error(
+        "Pacote do residente não encontrado no catálogo ao iniciar pagamento:",
+        {
+          residenteId,
+          pacote: residente.pacote
+        }
+      );
+
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: "Configuração inválida do pacote."
+      });
+    }
+
+    const entityCode = String(
+      process.env.SISP_SERVICO_ENTITY_CODE || ""
+    ).trim();
+
+    const referenceNumber = String(
+      process.env.SISP_SERVICO_REFERENCE_NUMBER || ""
+    ).trim();
+
+    let preparacao;
+
+    try {
+      preparacao =
+        sispService.prepararPedidoPagamentoServico({
+          valor: pacoteCatalogo.precoCVE,
+          entityCode,
+          referenceNumber
+        });
+    } catch (erroPreparacao) {
+      console.error(
+        "Erro ao preparar pedido SISP de pacote:",
+        erroPreparacao.message
+      );
+
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: "O serviço de pagamento não está configurado corretamente."
+      });
+    }
+
+    const criado =
+      await pagamentoModel.criarPagamentoPacotePendenteUnico({
+        residenteId,
+
+        merchantRef:
+          preparacao.pagamento.merchantRef,
+
+        merchantSession:
+          preparacao.pagamento.merchantSession,
+
+        pacote: residente.pacote,
+        valor: pacoteCatalogo.precoCVE
+      });
+
+    if (!criado.sucesso) {
+      if (criado.motivo === "pagamento_pendente_existente") {
+        return res.status(409).json({
+          sucesso: false,
+          mensagem: "Já existe um pagamento de pacote pendente."
+        });
+      }
+
+      if (criado.motivo === "pacote_nao_pendente") {
+        return res.status(409).json({
+          sucesso: false,
+          mensagem: "Este pacote já não está pendente de pagamento."
+        });
+      }
+
+      return res.status(404).json({
+        sucesso: false,
+        mensagem: "Residente não encontrado."
+      });
+    }
+
+    /*
+     * Nunca logar o FingerPrint, o posAutCode ou o payload completo do
+     * pedido — só o suficiente para investigar (merchantRef,
+     * residenteId, pacote, valor). preparacao.pedidoSeguro (que ainda
+     * inclui o corpo inteiro do pedido) não é usado aqui.
+     */
+    console.log(
+      "Pedido SISP de pacote preparado:",
+      {
+        merchantRef:
+          preparacao.pagamento.merchantRef,
+        residenteId,
+        pacote: residente.pacote,
+        valor: pacoteCatalogo.precoCVE
+      }
+    );
+
+    /*
+     * Devolve só o necessário para o frontend construir e submeter o
+     * próprio formulário para a SISP — nunca HTML pronto a injetar.
+     * Os campos vêm exclusivamente de preparacao.corpo, montado no
+     * backend a partir do catálogo; nada disto é reenviado pelo
+     * browser.
+     */
+    const campos = Object.fromEntries(
+      new URLSearchParams(
+        preparacao.corpo
+      )
+    );
+
+    return res.status(200).json({
+      sucesso: true,
+      url: preparacao.url,
+      campos
+    });
+  } catch (erro) {
+    console.error(
+      "Erro ao iniciar pagamento de pacote SISP:",
+      {
+        mensagem: erro.message,
+        codigo: erro.code || null
+      }
+    );
+
+    const mensagemErro =
+      String(erro.message || "");
+
+    const erroValor =
+      mensagemErro ===
+      "O valor do pagamento deve ser superior a zero." ||
+      mensagemErro ===
+      "O valor do pagamento deve ser um número inteiro em CVE.";
+
+    const erroConfiguracao =
+      mensagemErro.startsWith(
+        "Configuração SISP incompleta:"
+      );
+
+    const erroDados =
+      mensagemErro.includes("obrigatório") ||
+      mensagemErro.includes("obrigatória") ||
+      mensagemErro.includes("deve possuir") ||
+      mensagemErro.includes("deve ser");
+
+    if (erroValor || erroDados) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: mensagemErro
+      });
+    }
+
+    if (erroConfiguracao) {
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: "O serviço de pagamento não está configurado corretamente."
+      });
+    }
+
+    return res.status(500).json({
+      sucesso: false,
+      mensagem: "Não foi possível iniciar o pagamento."
+    });
+  }
+}
+
+/*
+|--------------------------------------------------------------------------
 | Processar retorno da SISP
 |--------------------------------------------------------------------------
 */
@@ -707,17 +919,55 @@ async function processarRetorno(req, res) {
             validacaoFingerprint.versao
         }
       );
-      const resultado =
-        await pagamentoModel.concluirPagamentoEAplicarRecarga({
-          merchantRef,
 
-          codigoResposta:
-            merchantResp ||
-            messageType,
+      /*
+       * Despacho explícito por tipo de pagamento. Um tipo desconhecido
+       * nunca pode cair automaticamente no fluxo de recarga (TC1).
+       */
+      let resultado;
 
-          descricaoResposta:
-            "Pagamento aprovado pela SISP."
-        });
+      if (pagamento.tipo === "pacote") {
+        resultado =
+          await pagamentoModel.concluirPagamentoEAtivarPacote({
+            merchantRef,
+
+            codigoResposta:
+              merchantResp ||
+              messageType,
+
+            descricaoResposta:
+              "Pagamento aprovado pela SISP."
+          });
+      } else if (pagamento.tipo === "saldo") {
+        resultado =
+          await pagamentoModel.concluirPagamentoEAplicarRecarga({
+            merchantRef,
+
+            codigoResposta:
+              merchantResp ||
+              messageType,
+
+            descricaoResposta:
+              "Pagamento aprovado pela SISP."
+          });
+      } else {
+        console.error(
+          "Tipo de pagamento desconhecido no callback SISP:",
+          {
+            merchantRef,
+            tipo: pagamento.tipo
+          }
+        );
+
+        return res
+          .status(500)
+          .type("html")
+          .send(
+            paginaErroPagamento(
+              "Tipo de pagamento não reconhecido."
+            )
+          );
+      }
 
       if (resultado.jaProcessado) {
         return res
@@ -730,6 +980,35 @@ async function processarRetorno(req, res) {
 
               mensagem:
                 "Esta transação já tinha sido processada anteriormente.",
+
+              sucesso:
+                true
+            })
+          );
+      }
+
+      if (pagamento.tipo === "pacote") {
+        console.log(
+          "Pacote ativado para o residente:",
+          {
+            merchantRef,
+            residenteId:
+              resultado.residenteId,
+            pacote:
+              resultado.pacote
+          }
+        );
+
+        return res
+          .status(200)
+          .type("html")
+          .send(
+            paginaRetornoPagamento({
+              titulo:
+                "Pagamento aprovado",
+
+              mensagem:
+                "O pagamento foi confirmado com sucesso. O pacote foi ativado.",
 
               sucesso:
                 true
@@ -850,5 +1129,6 @@ async function processarRetorno(req, res) {
 
 module.exports = {
   iniciarPagamento,
+  iniciarPagamentoPacote,
   processarRetorno
 };

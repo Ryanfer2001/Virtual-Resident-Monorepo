@@ -18,6 +18,7 @@ import Header from "@/components/Header";
 import {
   criarResidente,
   enviarFotosResidente,
+  iniciarPagamentoPacote,
 } from "@/lib/api";
 
 import { PAISES } from "@/lib/paises";
@@ -77,6 +78,37 @@ function capturarFrameCamera(
   contexto.drawImage(video, 0, 0, largura, altura);
 
   return canvas.toDataURL("image/jpeg", 0.75);
+}
+
+/*
+ * Constrói e submete, no próprio browser, o formulário POST para a
+ * página segura da Vinti4 — nunca a partir de HTML devolvido pelo
+ * servidor. `campos` vem exclusivamente da resposta de
+ * iniciarPagamentoPacote (já preparada no backend a partir do
+ * catálogo); nunca inclui o token da sessão de registo nem qualquer
+ * dado definido pelo browser.
+ */
+function submeterFormularioSisp(
+  url: string,
+  campos: Record<string, string>,
+) {
+  const formulario = document.createElement("form");
+
+  formulario.method = "POST";
+  formulario.action = url;
+
+  for (const [nome, valor] of Object.entries(campos)) {
+    const input = document.createElement("input");
+
+    input.type = "hidden";
+    input.name = nome;
+    input.value = valor;
+
+    formulario.appendChild(input);
+  }
+
+  document.body.appendChild(formulario);
+  formulario.submit();
 }
 
 export default function RegistoPage() {
@@ -403,6 +435,43 @@ export default function RegistoPage() {
             erroFotos,
           );
         }
+      }
+
+      const pacotePendente =
+        resposta.residente?.estadoPacote ===
+        "pendente_pagamento";
+
+      if (pacotePendente && resposta.token) {
+        setSucesso(
+          "Conta criada com sucesso. A encaminhar para o pagamento seguro...",
+        );
+
+        let pagamento;
+
+        try {
+          pagamento = await iniciarPagamentoPacote(
+            resposta.token,
+          );
+        } catch (erroPagamento) {
+          setSucesso("");
+          throw erroPagamento;
+        }
+
+        if (!pagamento.url || !pagamento.campos) {
+          setSucesso("");
+
+          throw new Error(
+            pagamento.mensagem ||
+              "Conta criada, mas não foi possível iniciar o pagamento agora. Inicia sessão para tentar novamente mais tarde.",
+          );
+        }
+
+        submeterFormularioSisp(
+          pagamento.url,
+          pagamento.campos,
+        );
+
+        return;
       }
 
       setSucesso(
