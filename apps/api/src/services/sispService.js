@@ -848,6 +848,24 @@ function prepararPedidoPagamentoServico(dados = {}) {
   const config =
     obterConfiguracaoSisp();
 
+  /*
+   * O TC10 (Pagamento de Serviço) usa um endpoint diferente do 3DS
+   * Server do TC1 (SISP_URL/config.url) — confirmado pela SISP:
+   * https://mc.vinti4net.cv/BizMPIOnUsSisp/CardPayment para
+   * transactionCode = "2", sem purchaseRequest. Lido diretamente aqui,
+   * nunca em obterConfiguracaoSisp, para nunca tornar SISP_SERVICO_URL
+   * obrigatório para o TC1 — se estiver vazio, só o TC10 falha.
+   */
+  const servicoUrl = String(
+    process.env.SISP_SERVICO_URL || ""
+  ).trim();
+
+  if (!servicoUrl) {
+    throw new Error(
+      "Configuração SISP incompleta: SISP_SERVICO_URL"
+    );
+  }
+
   const transactionCode = "2";
 
   if (
@@ -1016,7 +1034,7 @@ function prepararPedidoPagamentoServico(dados = {}) {
 
   return {
     url:
-      config.url,
+      servicoUrl,
 
     corpo,
 
