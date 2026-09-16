@@ -1172,6 +1172,99 @@ function validarResultFingerPrint(dados = {}) {
   ).trim();
 
   /*
+   |------------------------------------------------------------------
+   | Resposta de erro (messageType "6")
+   |------------------------------------------------------------------
+   |
+   | Fórmula própria, distinta da resposta de sucesso — especificação
+   | SISP "Pagamento Web - Especificação do Protocolo de Segurança
+   | v2.0":
+   |
+   | SHA512_BASE64(posAutCode)
+   | + messageType
+   | + merchantRespMessageID
+   | + merchantRespErrorCode
+   | + merchantRespErrorDetail
+   | + merchantRespErrorDescription
+   | + merchantRespMerchantRef
+   | + merchantRespMerchantSession
+   | + merchantRespAdditionalErrorMessage
+   | + merchantRespTimeStamp
+   |
+   | Sem amount/merchantRespPurchaseAmount (a SISP não os envia numa
+   | resposta de erro), sem PAN, sem merchantResp, sem
+   | languageMessages — nunca reaproveitar a fórmula de sucesso aqui.
+   |------------------------------------------------------------------
+   */
+  if (messageType === "6") {
+    const posAutCodeHashErro =
+      gerarSHA512Base64(posAutCode);
+
+    const messageIDErro = String(
+      dados.merchantRespMessageID || ""
+    ).trim();
+
+    const errorCodeErro = String(
+      dados.merchantRespErrorCode || ""
+    ).replace(/\s+/g, "");
+
+    const errorDetailErro = String(
+      dados.merchantRespErrorDetail || ""
+    ).trim();
+
+    const errorDescriptionErro = String(
+      dados.merchantRespErrorDescription || ""
+    ).trim();
+
+    const merchantRefErro = String(
+      dados.merchantRespMerchantRef || ""
+    ).trim();
+
+    const merchantSessionErro = String(
+      dados.merchantRespMerchantSession || ""
+    ).trim();
+
+    const additionalErrorMessageErro = String(
+      dados.merchantRespAdditionalErrorMessage || ""
+    ).trim();
+
+    const timeStampErro = String(
+      dados.merchantRespTimeStamp || ""
+    ).trim();
+
+    const mensagemErro =
+      posAutCodeHashErro +
+      messageType +
+      messageIDErro +
+      errorCodeErro +
+      errorDetailErro +
+      errorDescriptionErro +
+      merchantRefErro +
+      merchantSessionErro +
+      additionalErrorMessageErro +
+      timeStampErro;
+
+    const fingerprintCalculadoErro =
+      gerarSHA512Base64(mensagemErro);
+
+    const validoErro =
+      compararBase64Seguro(
+        fingerprintCalculadoErro,
+        resultFingerPrint
+      );
+
+    return {
+      valido: validoErro,
+
+      motivo: validoErro
+        ? "FingerPrint de resposta válido."
+        : "FingerPrint de resposta inválido.",
+
+      versao
+    };
+  }
+
+  /*
    * Esta função aceita as respostas de compra aprovada "8" (TC1,
    * recarga) e "P" (TC10, Pagamento de Serviço) — a fórmula do
    * FingerPrint abaixo (GerarFingerPrintRespostaBemSucedida) é a mesma

@@ -733,6 +733,50 @@ async function processarRetorno(req, res) {
       ""
     ).trim();
 
+    /*
+     * Retorno aprovado observado no ambiente de teste:
+     *
+     * messageType = "8"
+     * merchantResp = "C"
+     * campos de erro vazios
+     *
+     * pagamentoFalhado é calculado aqui, a partir só dos campos já
+     * parseados de "dados" — antes de qualquer validação obrigatória de
+     * valor. Numa resposta recusada/falhada (ex.: messageType "6",
+     * "TRANSACAO RECUSADA") a SISP não envia
+     * merchantRespPurchaseAmount nem amount; exigir esse valor antes de
+     * sequer reconhecer que a transação falhou mascarava o erro real da
+     * SISP com "o valor devolvido não corresponde ao pagamento
+     * iniciado".
+     */
+    const tiposSucesso = [
+      "8",
+      "A",
+      "B",
+      "C",
+      "M",
+      "P"
+    ];
+
+    const semErros =
+      !temCodigoErro &&
+      !descricaoErro &&
+      !detalheErro;
+
+    const pagamentoAprovado =
+      tiposSucesso.includes(messageType) &&
+      (
+        merchantResp === "C" ||
+        merchantResp === "0"
+      ) &&
+      semErros;
+
+    const pagamentoFalhado =
+      messageType === "6" ||
+      temCodigoErro ||
+      Boolean(descricaoErro) ||
+      Boolean(detalheErro);
+
     if (!merchantRef) {
       return res
         .status(400)
@@ -812,70 +856,42 @@ async function processarRetorno(req, res) {
     }
 
     /*
-     * Confirma o valor devolvido.
+     * Confirma o valor devolvido — só obrigatório fora do caminho de
+     * falha: uma resposta recusada/com erro não traz
+     * merchantRespPurchaseAmount, e não deve ser rejeitada por isso
+     * antes de chegar ao tratamento de pagamentoFalhado abaixo. Para um
+     * pagamento aprovado, esta validação continua obrigatória e
+     * inalterada (pagamentoAprovado implica sempre !pagamentoFalhado).
      */
     const valorGuardado = Number(
       pagamento.valor || 0
     );
 
-    if (
-      !Number.isFinite(valorDevolvido) ||
-      valorDevolvido <= 0 ||
-      valorDevolvido !== valorGuardado
-    ) {
-      console.error(
-        "Valor do pagamento diferente:",
-        {
-          merchantRef,
-          valorGuardado,
-          valorDevolvido
-        }
-      );
-
-      return res
-        .status(400)
-        .type("html")
-        .send(
-          paginaErroPagamento(
-            "O valor devolvido pela SISP não corresponde ao pagamento iniciado."
-          )
+    if (!pagamentoFalhado) {
+      if (
+        !Number.isFinite(valorDevolvido) ||
+        valorDevolvido <= 0 ||
+        valorDevolvido !== valorGuardado
+      ) {
+        console.error(
+          "Valor do pagamento diferente:",
+          {
+            merchantRef,
+            valorGuardado,
+            valorDevolvido
+          }
         );
+
+        return res
+          .status(400)
+          .type("html")
+          .send(
+            paginaErroPagamento(
+              "O valor devolvido pela SISP não corresponde ao pagamento iniciado."
+            )
+          );
+      }
     }
-
-    /*
-     * Retorno aprovado observado no ambiente de teste:
-     *
-     * messageType = "8"
-     * merchantResp = "C"
-     * campos de erro vazios
-     */
-    const tiposSucesso = [
-      "8",
-      "A",
-      "B",
-      "C",
-      "M",
-      "P"
-    ];
-
-    const semErros =
-      !temCodigoErro &&
-      !descricaoErro &&
-      !detalheErro;
-
-    const pagamentoAprovado =
-      tiposSucesso.includes(messageType) &&
-      (
-        merchantResp === "C" ||
-        merchantResp === "0"
-      ) &&
-      semErros;
-
-    const pagamentoFalhado =
-      messageType === "6" ||
-      temCodigoErro ||
-      Boolean(descricaoErro) ||
-      Boolean(detalheErro);
 
     /*
      * Pagamento aprovado.
@@ -1053,6 +1069,40 @@ async function processarRetorno(req, res) {
      * ou com erro técnico.
      */
     if (pagamentoFalhado) {
+      /*
+       * A especificação SISP ("Pagamento Web - Especificação do
+       * Protocolo de Segurança v2.0") define FingerPrint também para
+       * respostas de erro — tem de ser validado antes de qualquer
+       * alteração de estado, tal como já acontece para respostas
+       * aprovadas. Sem isto, uma resposta de erro forjada podia marcar
+       * um pagamento legítimo como falhado.
+       */
+      const validacaoFingerprintErro =
+        sispService.validarResultFingerPrint(
+          dados
+        );
+
+      if (!validacaoFingerprintErro.valido) {
+        console.error(
+          "FingerPrint de resposta de erro inválido:",
+          {
+            merchantRef,
+
+            motivo:
+              validacaoFingerprintErro.motivo
+          }
+        );
+
+        return res
+          .status(400)
+          .type("html")
+          .send(
+            paginaErroPagamento(
+              "Não foi possível validar a autenticidade da resposta da SISP."
+            )
+          );
+      }
+
       const mensagemErro =
         mensagemAdicional ||
         descricaoErro ||
