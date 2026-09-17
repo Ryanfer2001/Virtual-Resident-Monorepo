@@ -1358,6 +1358,11 @@ function validarResultFingerPrint(dados = {}) {
     dados.merchantRespReloadCode || ""
   ).replace(/\s+/g, "");
 
+  /*
+   * Para respostas de Pagamento de Serviço, o ambiente SISP gera o
+   * resultFingerPrint com merchantRespReferenceNumber antes de
+   * merchantRespEntityCode, confirmado por callbacks reais TC10.
+   */
   const mensagem =
     posAutCodeHash +
     messageType +
@@ -1370,8 +1375,8 @@ function validarResultFingerPrint(dados = {}) {
     pan +
     merchantResp +
     timeStamp +
-    entityCode +
     referenceNumber +
+    entityCode +
     clientReceipt +
     additionalErrorMessage +
     reloadCode;
@@ -1427,8 +1432,8 @@ function validarResultFingerPrint(dados = {}) {
           pan +
           merchantResp +
           timeStamp +
-          entityCode +
           referenceNumber +
+          entityCode +
           additionalErrorMessage +
           reloadCode
       },
@@ -1446,8 +1451,8 @@ function validarResultFingerPrint(dados = {}) {
           pan +
           merchantResp +
           timeStamp +
-          entityCode +
           referenceNumber +
+          entityCode +
           clientReceipt +
           additionalErrorMessage +
           reloadCode
@@ -1471,7 +1476,13 @@ function validarResultFingerPrint(dados = {}) {
           reloadCode
       },
       {
-        nome: "reference_before_entity",
+        /*
+         * Ordem antiga (entityCode antes de referenceNumber) — era a
+         * fórmula "oficial" até este diagnóstico confirmar, com
+         * callbacks reais TC10, que a SISP usa a ordem inversa. Mantida
+         * só para deteção, nunca pode produzir valido=true sozinha.
+         */
+        nome: "entity_before_reference",
         mensagem:
           posAutCodeHash +
           messageType +
@@ -1484,8 +1495,8 @@ function validarResultFingerPrint(dados = {}) {
           pan +
           merchantResp +
           timeStamp +
-          referenceNumber +
           entityCode +
+          referenceNumber +
           clientReceipt +
           additionalErrorMessage +
           reloadCode
@@ -1504,8 +1515,8 @@ function validarResultFingerPrint(dados = {}) {
           pan +
           merchantResp +
           timeStamp +
-          entityCode +
           referenceNumber +
+          entityCode +
           clientReceiptBruto +
           additionalErrorMessage +
           reloadCode
