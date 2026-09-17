@@ -1735,7 +1735,14 @@ async function consultarEstadoTransacao(merchantRef) {
       "Erro de rede ao consultar estado da transação SISP:",
       {
         merchantRef: merchantRefLimpo,
-        mensagem: erro.message
+        mensagem: erro.message,
+        nome: erro.name,
+        codigo: erro.code,
+        causaMensagem: erro.cause?.message,
+        causaCodigo: erro.cause?.code,
+        causaErrno: erro.cause?.errno,
+        causaSyscall: erro.cause?.syscall,
+        causaHostname: erro.cause?.hostname
       }
     );
 
