@@ -1747,87 +1747,71 @@ async function consultarEstadoTransacao(merchantRef) {
   const status = resposta.status;
   const texto = await resposta.text();
 
-  if (status === 401 || status === 403) {
+  if (!texto) {
     console.error(
-      "Falha de autenticação na consulta de estado SISP:",
+      "Resposta vazia da consulta de estado SISP:",
       {
         merchantRef: merchantRefLimpo,
         status
       }
     );
 
-    throw new Error(
-      "Autenticação rejeitada pela SISP na consulta de estado."
-    );
-  }
-
-  if (status === 404 || status === 405) {
-    console.error(
-      "Endpoint/método de consulta de estado SISP não reconhecido:",
-      {
-        merchantRef: merchantRefLimpo,
-        status
-      }
-    );
-
-    throw new Error(
-      `A SISP respondeu ${status} — o endpoint ou o método HTTP da consulta de estado não foi reconhecido.`
-    );
-  }
-
-  let dados;
-
-  try {
-    dados = texto ? JSON.parse(texto) : null;
-  } catch {
-    console.error(
-      "Resposta não-JSON da consulta de estado SISP:",
-      {
-        merchantRef: merchantRefLimpo,
-        status
-      }
-    );
-
-    throw new Error(
-      "A SISP devolveu uma resposta inválida para a consulta de estado."
-    );
-  }
-
-  if (!dados) {
     throw new Error(
       "A SISP devolveu uma resposta vazia para a consulta de estado."
     );
   }
 
-  if (
-    dados.result === undefined &&
-    dados.transactionSuccess === undefined
-  ) {
-    console.error(
-      "Resposta da consulta de estado SISP sem os campos esperados:",
-      {
-        merchantRef: merchantRefLimpo,
-        status
-      }
-    );
+  /*
+   * Preserva sempre o corpo real da SISP — inclusive com HTTP
+   * 401/403/404/405 — nunca o substitui por uma mensagem genérica
+   * nossa. Os Test Cases 39/40/41 exigem exatamente esse corpo (ex.:
+   * {"result": false, "msg": "Portal ID ou Password errado", ...}, ou
+   * texto simples como "Sem subscrição ao API
+   * ConsultaEstadoTransacaoPOS"). Só lança erro quando não há mesmo
+   * nenhuma resposta.
+   */
+  let dados = null;
 
-    throw new Error(
-      "A resposta da SISP não contém os campos esperados da consulta de estado."
-    );
+  try {
+    dados = JSON.parse(texto);
+  } catch {
+    dados = null;
+  }
+
+  console.log(
+    "Consulta de estado SISP concluída:",
+    {
+      merchantRef: merchantRefLimpo,
+      status,
+      jsonValido: Boolean(dados)
+    }
+  );
+
+  if (dados && typeof dados === "object") {
+    return {
+      status,
+
+      result: Boolean(dados.result),
+
+      msg: String(dados.msg || ""),
+
+      transactionSuccess: Boolean(dados.transactionSuccess),
+
+      transactionStatusDescription: String(
+        dados.transactionStatusDescription || ""
+      ),
+
+      bodyBruto: texto
+    };
   }
 
   return {
     status,
-
-    result: Boolean(dados.result),
-
-    msg: String(dados.msg || ""),
-
-    transactionSuccess: Boolean(dados.transactionSuccess),
-
-    transactionStatusDescription: String(
-      dados.transactionStatusDescription || ""
-    )
+    result: false,
+    msg: "",
+    transactionSuccess: false,
+    transactionStatusDescription: "",
+    bodyBruto: texto
   };
 }
 

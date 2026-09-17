@@ -29,4 +29,9 @@ router.post(
   pagamentoController.processarRetorno
 );
 
+router.get(
+  "/estado/:merchantRef",
+  pagamentoController.consultarEstadoTransacao
+);
+
 module.exports = router;

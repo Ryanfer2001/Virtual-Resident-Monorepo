@@ -2,6 +2,7 @@ const sispService = require("../services/sispService");
 const pagamentoModel = require("../models/pagamentoModel");
 const catalogoPacotes = require("../config/catalogoPacotes");
 const residenteModel = require("../models/residenteModel");
+const crypto = require("crypto");
 
 /*
 |--------------------------------------------------------------------------
@@ -1177,8 +1178,111 @@ async function processarRetorno(req, res) {
   }
 }
 
+/*
+|--------------------------------------------------------------------------
+| Comparar a chave da API de consulta de estado, em tempo constante
+|--------------------------------------------------------------------------
+|
+| Mesmo padrão já usado no projeto (ex.: comparação de passwords em
+| authController.js) — evita expor, pelo tempo de resposta, quantos
+| caracteres da chave estão corretos.
+|--------------------------------------------------------------------------
+*/
+
+function apiKeyEstadoValida(chaveRecebida, chaveConfigurada) {
+  const bufferRecebido = Buffer.from(String(chaveRecebida || ""));
+  const bufferConfigurado = Buffer.from(chaveConfigurada);
+
+  if (bufferRecebido.length !== bufferConfigurado.length) {
+    crypto.timingSafeEqual(bufferConfigurado, bufferConfigurado);
+    return false;
+  }
+
+  return crypto.timingSafeEqual(bufferRecebido, bufferConfigurado);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Consultar estado de uma transação SISP (Test Cases 39, 40, 41)
+|--------------------------------------------------------------------------
+|
+| Protegida por X-API-Key (SISP_STATUS_API_KEY) — não há sessão de
+| residente/admin aqui. Só consulta — nunca aplica saldo, nunca muda o
+| estado do pagamento na BD, nunca marca como concluído/falhado.
+| Devolve exatamente o que sispService.consultarEstadoTransacao
+| devolver.
+|--------------------------------------------------------------------------
+*/
+
+async function consultarEstadoTransacao(req, res) {
+  try {
+    const chaveConfigurada = String(
+      process.env.SISP_STATUS_API_KEY || ""
+    ).trim();
+
+    if (!chaveConfigurada) {
+      console.error(
+        "SISP_STATUS_API_KEY não está configurada."
+      );
+
+      return res.status(500).json({
+        sucesso: false,
+        mensagem: "Configuração inválida do serviço."
+      });
+    }
+
+    const chaveRecebida = req.headers["x-api-key"];
+
+    if (
+      !apiKeyEstadoValida(
+        chaveRecebida,
+        chaveConfigurada
+      )
+    ) {
+      return res.status(401).json({
+        sucesso: false,
+        mensagem: "Não autorizado."
+      });
+    }
+
+    const merchantRef = String(
+      req.params?.merchantRef || ""
+    ).trim();
+
+    if (!merchantRef) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: "merchantRef é obrigatório."
+      });
+    }
+
+    const resultado =
+      await sispService.consultarEstadoTransacao(
+        merchantRef
+      );
+
+    return res.status(200).json(resultado);
+  } catch (erro) {
+    console.error(
+      "Erro ao consultar estado da transação SISP:",
+      {
+        merchantRef: req.params?.merchantRef || "",
+        mensagem: erro.message
+      }
+    );
+
+    return res.status(500).json({
+      sucesso: false,
+      mensagem:
+        erro.message ||
+        "Não foi possível consultar o estado da transação."
+    });
+  }
+}
+
 module.exports = {
   iniciarPagamento,
   iniciarPagamentoPacote,
+  consultarEstadoTransacao,
   processarRetorno
 };
