@@ -1385,6 +1385,215 @@ function validarResultFingerPrint(dados = {}) {
       resultFingerPrint
     );
 
+  /*
+  |--------------------------------------------------------------------------
+  | DIAGNÓSTICO TEMPORÁRIO — REMOVER depois de identificada a causa
+  |--------------------------------------------------------------------------
+  |
+  | Só corre para messageType "P". Nunca influencia `valido` (já
+  | calculado acima, com a fórmula oficial) — só calcula variantes
+  | alternativas internamente, em memória, para identificar qual delas
+  | (se alguma) bate com o resultFingerPrint recebido. A fórmula oficial
+  | continua a ser a única que pode fazer esta função devolver
+  | valido=true ao chamador; isto é só observação.
+  |
+  | Nunca regista: SISP_POS_AUT_CODE, o hash do posAutCode isolado, PAN,
+  | resultFingerPrint, o fingerprint calculado (de nenhuma variante) ou
+  | qualquer string concatenada — só o nome da variante coincidente (se
+  | houver) e comprimentos de campos.
+  |--------------------------------------------------------------------------
+  */
+  if (messageType === "P") {
+    const amountBruto = String(
+      dados.merchantRespPurchaseAmount || ""
+    ).trim();
+
+    const clientReceiptBruto = String(
+      dados.merchantRespClientReceipt || ""
+    );
+
+    const variantesDiagnostico = [
+      {
+        nome: "without_client_receipt",
+        mensagem:
+          posAutCodeHash +
+          messageType +
+          merchantRespCP +
+          merchantRespTid +
+          merchantRef +
+          merchantSession +
+          valorFingerprint +
+          messageID +
+          pan +
+          merchantResp +
+          timeStamp +
+          entityCode +
+          referenceNumber +
+          additionalErrorMessage +
+          reloadCode
+      },
+      {
+        nome: "raw_amount",
+        mensagem:
+          posAutCodeHash +
+          messageType +
+          merchantRespCP +
+          merchantRespTid +
+          merchantRef +
+          merchantSession +
+          amountBruto +
+          messageID +
+          pan +
+          merchantResp +
+          timeStamp +
+          entityCode +
+          referenceNumber +
+          clientReceipt +
+          additionalErrorMessage +
+          reloadCode
+      },
+      {
+        nome: "without_entity_reference",
+        mensagem:
+          posAutCodeHash +
+          messageType +
+          merchantRespCP +
+          merchantRespTid +
+          merchantRef +
+          merchantSession +
+          valorFingerprint +
+          messageID +
+          pan +
+          merchantResp +
+          timeStamp +
+          clientReceipt +
+          additionalErrorMessage +
+          reloadCode
+      },
+      {
+        nome: "reference_before_entity",
+        mensagem:
+          posAutCodeHash +
+          messageType +
+          merchantRespCP +
+          merchantRespTid +
+          merchantRef +
+          merchantSession +
+          valorFingerprint +
+          messageID +
+          pan +
+          merchantResp +
+          timeStamp +
+          referenceNumber +
+          entityCode +
+          clientReceipt +
+          additionalErrorMessage +
+          reloadCode
+      },
+      {
+        nome: "client_receipt_without_trim",
+        mensagem:
+          posAutCodeHash +
+          messageType +
+          merchantRespCP +
+          merchantRespTid +
+          merchantRef +
+          merchantSession +
+          valorFingerprint +
+          messageID +
+          pan +
+          merchantResp +
+          timeStamp +
+          entityCode +
+          referenceNumber +
+          clientReceiptBruto +
+          additionalErrorMessage +
+          reloadCode
+      }
+    ];
+
+    let varianteCoincidente = valido
+      ? "official_current"
+      : null;
+
+    if (!varianteCoincidente) {
+      for (const variante of variantesDiagnostico) {
+        const fingerprintVariante =
+          gerarSHA512Base64(
+            variante.mensagem
+          );
+
+        const coincide =
+          compararBase64Seguro(
+            fingerprintVariante,
+            resultFingerPrint
+          );
+
+        if (coincide) {
+          varianteCoincidente = variante.nome;
+          break;
+        }
+      }
+    }
+
+    console.log(
+      "[SISP FP diagnóstico]",
+      {
+        messageType,
+
+        officialMatch:
+          valido,
+
+        matchingVariant:
+          varianteCoincidente,
+
+        purchaseAmountReceived:
+          amountBruto,
+
+        purchaseAmountFingerprint:
+          valorFingerprint,
+
+        cpLength:
+          merchantRespCP.length,
+
+        tidLength:
+          merchantRespTid.length,
+
+        merchantRefLength:
+          merchantRef.length,
+
+        merchantSessionLength:
+          merchantSession.length,
+
+        messageIdLength:
+          messageID.length,
+
+        panLength:
+          pan.length,
+
+        timestampLength:
+          timeStamp.length,
+
+        entityCodeLength:
+          entityCode.length,
+
+        referenceNumberLength:
+          referenceNumber.length,
+
+        clientReceiptLengthRaw:
+          clientReceiptBruto.length,
+
+        clientReceiptLengthTrimmed:
+          clientReceipt.length
+      }
+    );
+  }
+  /*
+  |--------------------------------------------------------------------------
+  | FIM DO DIAGNÓSTICO TEMPORÁRIO
+  |--------------------------------------------------------------------------
+  */
+
   return {
     valido,
 
