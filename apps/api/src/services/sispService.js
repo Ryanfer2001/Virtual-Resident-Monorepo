@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const { Agent } = require("undici");
 
 /*
 |--------------------------------------------------------------------------
@@ -1715,21 +1716,69 @@ async function consultarEstadoTransacao(merchantRef) {
     .from(`${portalId}:${portalPassword}`, "utf8")
     .toString("base64");
 
+  /*
+   * Certificado self-signed só é aceite quando as três condições
+   * seguintes forem verdadeiras em simultâneo. Fora disso,
+   * rejectUnauthorized mantém-se true — comportamento atual, sem
+   * NODE_TLS_REJECT_UNAUTHORIZED global, sem afetar mais nenhum
+   * pedido fetch do processo.
+   */
+  const permitirSelfSigned =
+    String(process.env.SISP_ALLOW_SELF_SIGNED_CERT || "")
+      .trim()
+      .toLowerCase() === "true";
+
+  const ambienteProducao =
+    String(process.env.SISP_TRANSACTION_STATUS_ENV || "")
+      .trim()
+      .toLowerCase() === "production";
+
+  let hostnameConsulta = "";
+
+  try {
+    hostnameConsulta = new URL(url).hostname;
+  } catch {
+    hostnameConsulta = "";
+  }
+
+  const usarCertificadoSelfSigned =
+    permitirSelfSigned &&
+    !ambienteProducao &&
+    hostnameConsulta === "comerciante.teste.sisp.cv";
+
+  const opcoesFetch = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Basic ${autorizacao}`
+    },
+    body: JSON.stringify({
+      posID,
+      posAuthCode,
+      merchantRef: merchantRefLimpo
+    })
+  };
+
+  if (usarCertificadoSelfSigned) {
+    console.error(
+      "Aviso: a aceitar certificado self-signed só para o ambiente de testes SISP:",
+      {
+        merchantRef: merchantRefLimpo,
+        hostname: hostnameConsulta
+      }
+    );
+
+    opcoesFetch.dispatcher = new Agent({
+      connect: {
+        rejectUnauthorized: false
+      }
+    });
+  }
+
   let resposta;
 
   try {
-    resposta = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Basic ${autorizacao}`
-      },
-      body: JSON.stringify({
-        posID,
-        posAuthCode,
-        merchantRef: merchantRefLimpo
-      })
-    });
+    resposta = await fetch(url, opcoesFetch);
   } catch (erro) {
     console.error(
       "Erro de rede ao consultar estado da transação SISP:",
