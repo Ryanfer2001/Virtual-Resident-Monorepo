@@ -1,5 +1,8 @@
 const crypto = require("crypto");
-const { Agent } = require("undici");
+const {
+  fetch: undiciFetch,
+  Agent
+} = require("undici");
 
 /*
 |--------------------------------------------------------------------------
@@ -1778,7 +1781,7 @@ async function consultarEstadoTransacao(merchantRef) {
   let resposta;
 
   try {
-    resposta = await fetch(url, opcoesFetch);
+    resposta = await undiciFetch(url, opcoesFetch);
   } catch (erro) {
     console.error(
       "Erro de rede ao consultar estado da transação SISP:",
