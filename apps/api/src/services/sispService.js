@@ -1257,6 +1257,35 @@ function validarResultFingerPrint(dados = {}) {
         resultFingerPrint
       );
 
+    /*
+    |------------------------------------------------------------------
+    | DIAGNÓSTICO TEMPORÁRIO (messageType "6") — REMOVER depois
+    |------------------------------------------------------------------
+    |
+    | Nunca regista SISP_POS_AUT_CODE em bruto — só o seu hash
+    | (posAutCodeHashErro), que já é um componente não-reversível da
+    | fórmula. Não altera `validoErro` nem a fórmula — só observação.
+    |------------------------------------------------------------------
+    */
+    console.log(
+      "[SISP FP diagnóstico erro messageType=6]",
+      {
+        posAutCodeHashErro,
+        messageType,
+        merchantRespMessageID: messageIDErro,
+        merchantRespErrorCode: errorCodeErro,
+        merchantRespErrorDetail: errorDetailErro,
+        merchantRespErrorDescription: errorDescriptionErro,
+        merchantRespMerchantRef: merchantRefErro,
+        merchantRespMerchantSession: merchantSessionErro,
+        merchantRespAdditionalErrorMessage: additionalErrorMessageErro,
+        merchantRespTimeStamp: timeStampErro,
+        mensagemErro,
+        fingerprintCalculadoErro,
+        resultFingerPrint
+      }
+    );
+
     return {
       valido: validoErro,
 
