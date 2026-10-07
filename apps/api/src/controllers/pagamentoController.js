@@ -3,6 +3,8 @@ const pagamentoModel = require("../models/pagamentoModel");
 const catalogoPacotes = require("../config/catalogoPacotes");
 const residenteModel = require("../models/residenteModel");
 const crypto = require("crypto");
+const emailService = require("../services/emailService");
+const reciboService = require("../services/reciboService");
 
 /*
 |--------------------------------------------------------------------------
@@ -100,10 +102,122 @@ function paginaErroPagamento(mensagem) {
 |--------------------------------------------------------------------------
 */
 
+/*
+|--------------------------------------------------------------------------
+| Cartão de recibo (HTML), incluído na página de retorno
+|--------------------------------------------------------------------------
+|
+| `recibo` vem sempre de reciboService.construirRecibo — nunca contém
+| PAN, FingerPrint, posAutCode ou qualquer segredo SISP. O bloco DCC só
+| é desenhado quando `recibo.dcc` existir (ou seja, dcc === "Y" na
+| resposta da SISP); caso contrário não aparece nada relacionado com
+| DCC.
+|--------------------------------------------------------------------------
+*/
+
+function cartaoRecibo(recibo) {
+  if (!recibo) {
+    return "";
+  }
+
+  const dataTransacaoFormatada = recibo.transacao.dataTransacao
+    ? new Date(recibo.transacao.dataTransacao).toLocaleString(
+        "pt-PT",
+        { timeZone: "Atlantic/Cape_Verde" }
+      )
+    : "";
+
+  const dataPrestacaoFormatada = recibo.transacao.dataPrestacaoServico
+    ? new Date(recibo.transacao.dataPrestacaoServico).toLocaleString(
+        "pt-PT",
+        { timeZone: "Atlantic/Cape_Verde" }
+      )
+    : "";
+
+  const blocoDcc = recibo.dcc
+    ? `
+      <table style="width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 10px;">
+        <tr>
+          <td style="padding: 4px 0; color: #607080;">Valor original</td>
+          <td style="padding: 4px 0; text-align: right;">${escaparHtml(String(recibo.dcc.valorOriginalCVE))} CVE</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 0; color: #607080;">Taxa de conversão / Currency Conversion Rate</td>
+          <td style="padding: 4px 0; text-align: right;">1 ${escaparHtml(recibo.dcc.dccCurrency)} = ${escaparHtml(recibo.dcc.dccRate)} CVE</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 0; color: #607080;">DCC Markup</td>
+          <td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.dcc.dccMarkup)} %</td>
+        </tr>
+        <tr>
+          <td style="padding: 4px 0; color: #607080;">Valor cobrado</td>
+          <td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.dcc.dccAmount)} ${escaparHtml(recibo.dcc.dccCurrency)}</td>
+        </tr>
+      </table>
+
+      <p style="font-size: 12px; color: #607080; margin-top: 10px;">
+        ${recibo.dcc.avisos.map(escaparHtml).join("<br>")}
+      </p>
+    `
+    : "";
+
+  return `
+    <div
+      id="recibo"
+      style="
+        margin-top: 24px;
+        text-align: left;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 20px;
+      "
+    >
+      <h3 style="margin: 0 0 12px; color: #0f1f2e;">Recibo</h3>
+
+      <p style="margin: 2px 0;"><strong>${escaparHtml(recibo.comerciante.nome)}</strong></p>
+      ${recibo.comerciante.telefone ? `<p style="margin: 2px 0; font-size: 13px; color: #607080;">Tel: ${escaparHtml(recibo.comerciante.telefone)}</p>` : ""}
+      ${recibo.comerciante.email ? `<p style="margin: 2px 0; font-size: 13px; color: #607080;">${escaparHtml(recibo.comerciante.email)}</p>` : ""}
+      ${recibo.comerciante.url ? `<p style="margin: 2px 0 14px; font-size: 13px; color: #607080;">${escaparHtml(recibo.comerciante.url)}</p>` : ""}
+
+      <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+        <tr><td style="padding: 4px 0; color: #607080;">Cliente</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.cliente.nome)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #607080;">Email</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.cliente.email)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #607080;">Serviço</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.transacao.descricao)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #607080;">Referência</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.transacao.merchantRef)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #607080;">Data da transação</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(dataTransacaoFormatada)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #607080;">Data de prestação do serviço</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(dataPrestacaoFormatada)}</td></tr>
+        <tr><td style="padding: 4px 0; color: #607080;">Valor</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(String(recibo.transacao.valor))} CVE</td></tr>
+        <tr><td style="padding: 4px 0; color: #607080;">Estado</td><td style="padding: 4px 0; text-align: right;"><strong>${escaparHtml(recibo.transacao.estado)}</strong></td></tr>
+      </table>
+
+      ${blocoDcc}
+
+      <button
+        type="button"
+        class="no-print"
+        onclick="window.print()"
+        style="
+          margin-top: 18px;
+          width: 100%;
+          background: #eef2f7;
+          color: #0f1f2e;
+          border: 1px solid #d7dee8;
+          padding: 10px 16px;
+          border-radius: 8px;
+          font-weight: bold;
+          cursor: pointer;
+        "
+      >
+        Imprimir / Guardar recibo
+      </button>
+    </div>
+  `;
+}
+
 function paginaRetornoPagamento({
   titulo,
   mensagem,
-  sucesso
+  sucesso,
+  recibo
 }) {
   const dashboardUrl =
     process.env.FRONTEND_DASHBOARD_URL ||
@@ -121,6 +235,14 @@ function paginaRetornoPagamento({
   >
 
   <title>${escaparHtml(titulo)}</title>
+
+  <style>
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
 </head>
 
 <body
@@ -153,6 +275,7 @@ function paginaRetornoPagamento({
     </p>
 
     <a
+      class="no-print"
       href="${escaparHtml(dashboardUrl)}"
       style="
         display: inline-block;
@@ -167,16 +290,22 @@ function paginaRetornoPagamento({
     >
       Voltar à NOSZONA
     </a>
+
+    ${cartaoRecibo(recibo)}
   </div>
 
-  <script>
+  ${
+    recibo
+      ? ""
+      : `<script>
     setTimeout(
       function () {
         window.location.href = ${JSON.stringify(dashboardUrl)};
       },
       3000
     );
-  </script>
+  </script>`
+  }
 </body>
 </html>
   `;
@@ -636,6 +765,64 @@ async function iniciarPagamentoPacote(req, res) {
 
 /*
 |--------------------------------------------------------------------------
+| Construir o recibo e enviar o email — só depois de o pagamento já
+| estar confirmado na BD
+|--------------------------------------------------------------------------
+|
+| Só deve ser chamada depois de concluirPagamentoEAplicarRecarga /
+| concluirPagamentoEAtivarPacote terem terminado com sucesso
+| (resultado.jaProcessado === false) — relê o pagamento já concluído
+| (estado='concluido', com os campos DCC já gravados) em vez de montar
+| o recibo a partir de valores assumidos. O envio do email usa await
+| dentro de try/catch: uma falha é só registada (console.error), nunca
+| altera/reverte o pagamento, saldo ou pacote. reciboEmailEnviadoEm só é
+| escrito depois de sendMail terminar com sucesso.
+|--------------------------------------------------------------------------
+*/
+
+async function construirReciboEEnviarEmail(merchantRef) {
+  const pagamentoConfirmado =
+    await pagamentoModel.procurarPorMerchantRef(
+      merchantRef
+    );
+
+  const residente =
+    await residenteModel.procurarPorId(
+      pagamentoConfirmado.residenteId
+    );
+
+  const recibo = reciboService.construirRecibo({
+    pagamento: pagamentoConfirmado,
+    residente
+  });
+
+  if (residente?.email) {
+    try {
+      await emailService.enviarEmailRecibo({
+        destinatario: residente.email,
+        nome: residente.nome,
+        recibo
+      });
+
+      await pagamentoModel.marcarReciboEmailEnviado(
+        merchantRef
+      );
+    } catch (erroEmail) {
+      console.error(
+        "Erro ao enviar email do recibo (pagamento já confirmado, não revertido):",
+        {
+          merchantRef,
+          mensagem: erroEmail.message
+        }
+      );
+    }
+  }
+
+  return recibo;
+}
+
+/*
+|--------------------------------------------------------------------------
 | Processar retorno da SISP
 |--------------------------------------------------------------------------
 */
@@ -732,6 +919,30 @@ async function processarRetorno(req, res) {
     const mensagemAdicional = String(
       dados.merchantRespAdditionalErrorMessage ||
       ""
+    ).trim();
+
+    /*
+     * Campos DCC — só para guardar/exibir no recibo, nunca influenciam
+     * a classificação aprovado/falhado nem a validação de FingerPrint.
+     */
+    const dcc = String(
+      dados.dcc || ""
+    ).trim();
+
+    const dccAmount = String(
+      dados.dccAmount || ""
+    ).trim();
+
+    const dccCurrency = String(
+      dados.dccCurrency || ""
+    ).trim();
+
+    const dccMarkup = String(
+      dados.dccMarkup || ""
+    ).trim();
+
+    const dccRate = String(
+      dados.dccRate || ""
     ).trim();
 
     /*
@@ -953,7 +1164,13 @@ async function processarRetorno(req, res) {
               messageType,
 
             descricaoResposta:
-              "Pagamento aprovado pela SISP."
+              "Pagamento aprovado pela SISP.",
+
+            dcc,
+            dccAmount,
+            dccCurrency,
+            dccMarkup,
+            dccRate
           });
       } else if (pagamento.tipo === "saldo") {
         resultado =
@@ -965,7 +1182,13 @@ async function processarRetorno(req, res) {
               messageType,
 
             descricaoResposta:
-              "Pagamento aprovado pela SISP."
+              "Pagamento aprovado pela SISP.",
+
+            dcc,
+            dccAmount,
+            dccCurrency,
+            dccMarkup,
+            dccRate
           });
       } else {
         console.error(
@@ -1016,6 +1239,11 @@ async function processarRetorno(req, res) {
           }
         );
 
+        const reciboPacote =
+          await construirReciboEEnviarEmail(
+            merchantRef
+          );
+
         return res
           .status(200)
           .type("html")
@@ -1028,7 +1256,10 @@ async function processarRetorno(req, res) {
                 "O pagamento foi confirmado com sucesso. O pacote foi ativado.",
 
               sucesso:
-                true
+                true,
+
+              recibo:
+                reciboPacote
             })
           );
       }
@@ -1048,6 +1279,11 @@ async function processarRetorno(req, res) {
         }
       );
 
+      const reciboRecarga =
+        await construirReciboEEnviarEmail(
+          merchantRef
+        );
+
       return res
         .status(200)
         .type("html")
@@ -1060,7 +1296,10 @@ async function processarRetorno(req, res) {
               "O pagamento foi confirmado com sucesso. A recarga será aplicada à conta.",
 
             sucesso:
-              true
+              true,
+
+            recibo:
+              reciboRecarga
           })
         );
     }
@@ -1280,9 +1519,100 @@ async function consultarEstadoTransacao(req, res) {
   }
 }
 
+/*
+|--------------------------------------------------------------------------
+| Obter recibo de um pagamento concluído (área autenticada)
+|--------------------------------------------------------------------------
+|
+| Só leitura — nunca chama concluirPagamentoEAplicarRecarga/
+| concluirPagamentoEAtivarPacote, nunca altera saldo, estadoPacote ou o
+| estado do pagamento. Exige que o pagamento pertença ao residente
+| autenticado (req.utilizador.id, o mesmo campo já usado em
+| iniciarPagamento/iniciarPagamentoPacote) — merchantRef sozinho nunca
+| é suficiente.
+|--------------------------------------------------------------------------
+*/
+
+async function obterRecibo(req, res) {
+  try {
+    const residenteId = req.utilizador?.id;
+
+    if (!residenteId) {
+      return res.status(401).json({
+        sucesso: false,
+        mensagem: "Sessão inválida."
+      });
+    }
+
+    const merchantRef = String(
+      req.params?.merchantRef || ""
+    ).trim();
+
+    if (!merchantRef) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: "merchantRef é obrigatório."
+      });
+    }
+
+    const pagamento =
+      await pagamentoModel.procurarPorMerchantRef(
+        merchantRef
+      );
+
+    if (!pagamento) {
+      return res.status(404).json({
+        sucesso: false,
+        mensagem: "Pagamento não encontrado."
+      });
+    }
+
+    if (pagamento.residenteId !== residenteId) {
+      return res.status(403).json({
+        sucesso: false,
+        mensagem: "Não autorizado."
+      });
+    }
+
+    if (pagamento.estado !== "concluido") {
+      return res.status(409).json({
+        sucesso: false,
+        mensagem: "Este pagamento ainda não tem recibo disponível."
+      });
+    }
+
+    const residente =
+      await residenteModel.procurarPorId(residenteId);
+
+    const recibo = reciboService.construirRecibo({
+      pagamento,
+      residente
+    });
+
+    return res.status(200).json({
+      sucesso: true,
+      recibo
+    });
+  } catch (erro) {
+    console.error(
+      "Erro ao obter recibo:",
+      {
+        merchantRef: req.params?.merchantRef || "",
+        mensagem: erro.message
+      }
+    );
+
+    return res.status(500).json({
+      sucesso: false,
+      mensagem: "Não foi possível obter o recibo."
+    });
+  }
+}
+
 module.exports = {
   iniciarPagamento,
   iniciarPagamentoPacote,
   consultarEstadoTransacao,
+  obterRecibo,
   processarRetorno
 };

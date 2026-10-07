@@ -146,7 +146,12 @@ async function marcarComoFalhado({
 async function concluirPagamentoEAplicarRecarga({
   merchantRef,
   codigoResposta,
-  descricaoResposta
+  descricaoResposta,
+  dcc,
+  dccAmount,
+  dccCurrency,
+  dccMarkup,
+  dccRate
 }) {
   const conexao = await pool.getConnection();
 
@@ -277,12 +282,22 @@ async function concluirPagamentoEAplicarRecarga({
           estado = 'concluido',
           codigoResposta = ?,
           descricaoResposta = ?,
-          confirmadoEm = NOW()
+          confirmadoEm = NOW(),
+          dcc = ?,
+          dccAmount = ?,
+          dccCurrency = ?,
+          dccMarkup = ?,
+          dccRate = ?
         WHERE merchantRef = ?
           AND estado = 'pendente'`,
         [
           codigoResposta || "",
           descricaoResposta || "",
+          dcc || null,
+          dccAmount || null,
+          dccCurrency || null,
+          dccMarkup || null,
+          dccRate || null,
           merchantRef
         ]
       );
@@ -472,7 +487,12 @@ async function criarPagamentoPacotePendenteUnico(dados) {
 async function concluirPagamentoEAtivarPacote({
   merchantRef,
   codigoResposta,
-  descricaoResposta
+  descricaoResposta,
+  dcc,
+  dccAmount,
+  dccCurrency,
+  dccMarkup,
+  dccRate
 }) {
   const conexao = await pool.getConnection();
 
@@ -644,12 +664,22 @@ async function concluirPagamentoEAtivarPacote({
         estado = 'concluido',
         codigoResposta = ?,
         descricaoResposta = ?,
-        confirmadoEm = NOW()
+        confirmadoEm = NOW(),
+        dcc = ?,
+        dccAmount = ?,
+        dccCurrency = ?,
+        dccMarkup = ?,
+        dccRate = ?
       WHERE merchantRef = ?
         AND estado = 'pendente'`,
       [
         codigoResposta || "",
         descricaoResposta || "",
+        dcc || null,
+        dccAmount || null,
+        dccCurrency || null,
+        dccMarkup || null,
+        dccRate || null,
         merchantRef
       ]
     );
@@ -706,6 +736,30 @@ async function expirarPagamentosPendentes() {
   return resultado;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Marcar o email do recibo como enviado
+|--------------------------------------------------------------------------
+|
+| Só deve ser chamada depois de sendMail terminar com sucesso — nunca
+| antes, e nunca em caso de falha do email. Não toca em saldo,
+| estadoPacote, estado do pagamento ou qualquer outra coluna. Não é a
+| proteção primária contra duplicação (essa já existe no guarda
+| estado='pendente' das funções de conclusão) — serve de registo/apoio.
+|--------------------------------------------------------------------------
+*/
+
+async function marcarReciboEmailEnviado(merchantRef) {
+  const [resultado] = await pool.execute(
+    `UPDATE pagamentos
+    SET reciboEmailEnviadoEm = NOW()
+    WHERE merchantRef = ?`,
+    [merchantRef]
+  );
+
+  return resultado;
+}
+
 module.exports = {
   criarPagamentoPendente,
   procurarPorMerchantRef,
@@ -714,5 +768,6 @@ module.exports = {
   concluirPagamentoEAplicarRecarga,
   criarPagamentoPacotePendenteUnico,
   concluirPagamentoEAtivarPacote,
+  marcarReciboEmailEnviado,
   expirarPagamentosPendentes
 };

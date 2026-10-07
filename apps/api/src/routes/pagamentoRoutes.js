@@ -34,4 +34,10 @@ router.get(
   pagamentoController.consultarEstadoTransacao
 );
 
+router.get(
+  "/recibo/:merchantRef",
+  authMiddleware.autenticarToken,
+  pagamentoController.obterRecibo
+);
+
 module.exports = router;

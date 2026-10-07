@@ -77,6 +77,45 @@ export interface IniciarPagamentoPacoteResponse {
   campos?: Record<string, string>;
 }
 
+export interface ReciboDcc {
+  valorOriginalCVE: number;
+  dccRate: string;
+  dccMarkup: string;
+  dccCurrency: string;
+  dccAmount: string;
+  avisos: string[];
+}
+
+export interface Recibo {
+  comerciante: {
+    nome: string;
+    telefone: string;
+    email: string;
+    url: string;
+  };
+  cliente: {
+    nome: string;
+    email: string;
+  };
+  transacao: {
+    merchantRef: string;
+    estado: string;
+    tipo: string;
+    descricao: string;
+    valor: number;
+    moeda: string;
+    dataTransacao: string;
+    dataPrestacaoServico: string;
+  };
+  dcc: ReciboDcc | null;
+}
+
+export interface ObterReciboResponse {
+  sucesso: boolean;
+  mensagem?: string;
+  recibo?: Recibo;
+}
+
 export interface EnviarFotosPayload {
   residenteId: string;
   fotoPerfilBase64?: string;
