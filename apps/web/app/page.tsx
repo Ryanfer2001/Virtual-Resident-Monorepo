@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import { useState , useEffect} from 'react'
 import { obterResidenteGuardado, terminarSessao } from "@/lib/auth";
 import { PACOTES, obterPrecosPacotes, formatarPrecoCVE, type PacoteId } from "@/lib/pacotes";
+import PaymentLogos from "@/components/PaymentLogos";
+import Footer from "@/components/Footer";
 
 const CardRoulette = dynamic(() => import("@/components/CardRoulette"), { ssr: false });
 
@@ -418,7 +420,7 @@ const subPlanosPorPacote = Object.fromEntries(
             <div className="pkg-card featured">
               <div className="pkg-label">Conhecer</div>
               <div className="pkg-name"> VISITOR</div>
-              <p>VISIT, DISCOVER & EXPLORE</p>
+              <p>Para quem está a descobrir ou a visitar Cabo Verde.</p>
               <div className="pkg-price">
                 <div className="pkg-price-prefixo">A partir de</div>
                 <div className="amount">{formatarAmount('visitor')}</div>
@@ -426,11 +428,9 @@ const subPlanosPorPacote = Object.fromEntries(
               </div>
               <div className="pkg-divider"></div>
               <ul className="pkg-features">
-                <li><div className="pkg-check"></div> Acess to countrym comunity</li>
-                <li><div className="pkg-check"></div> culture, tours, investment</li>
-                <li><div className="pkg-check"></div> business, innovation</li>
-                <li><div className="pkg-check"></div> diaspora conect</li>
-                <li><div className="pkg-check"></div>  acess to smart city academy</li>
+                <li><div className="pkg-check"></div> Básico — Grátis: Acesso à comunidade e eventos abertos.</li>
+                <li><div className="pkg-check"></div> Standard — 1.500 CVE: Tours guiados e acesso à Smart City Akademy.</li>
+                <li><div className="pkg-check"></div> Plus — 3.000 CVE: Acesso prioritário a eventos e parceiros de investimento.</li>
               </ul>
               <button className="btn-pkg btn-pkg-featured" onClick={() => abrirPopupPacote('visitor')}>Escolher</button>
             </div>
@@ -438,6 +438,7 @@ const subPlanosPorPacote = Object.fromEntries(
             <div className="pkg-card featured">
               <div className="pkg-label">Ilhas</div>
               <div className="pkg-name">DIASPORA</div>
+              <p>Para cabo-verdianos na diáspora e as suas ilhas de origem.</p>
               <div className="pkg-price">
                 <div className="pkg-price-prefixo">A partir de</div>
                 <div className="amount">{formatarAmount('diaspora')}</div>
@@ -445,10 +446,9 @@ const subPlanosPorPacote = Object.fromEntries(
               </div>
               <div className="pkg-divider"></div>
               <ul className="pkg-features">
-                <li><div className="pkg-check"></div> 5.000 CVE de saldo na carteira</li>
-                <li><div className="pkg-check"></div> 50 swipes na cantina</li>
-                <li><div className="pkg-check"></div> Entrada em todos os eventos</li>
-                <li><div className="pkg-check"></div> QR seguro incluído</li>
+                <li><div className="pkg-check"></div> Start — 2.500 CVE: 2.500 CVE de saldo e 20 swipes na cantina.</li>
+                <li><div className="pkg-check"></div> Completo — 5.000 CVE: 5.000 CVE de saldo, 50 swipes e entrada em todos os eventos.</li>
+                <li><div className="pkg-check"></div> Premium — 10.000 CVE: 10.000 CVE de saldo, swipes ilimitados e QR prioritário.</li>
               </ul>
               <button className="btn-pkg btn-pkg-featured" onClick={() => abrirPopupPacote('diaspora')}>Escolher</button>
             </div>
@@ -456,6 +456,7 @@ const subPlanosPorPacote = Object.fromEntries(
             <div className="pkg-card featured">
               <div className="pkg-label">Invest</div>
               <div className="pkg-name">BUSINESS</div>
+              <p>Para empreendedores e investidores em Cabo Verde.</p>
               <div className="pkg-price">
                 <div className="pkg-price-prefixo">A partir de</div>
                 <div className="amount">{formatarAmount('business')}</div>
@@ -463,19 +464,17 @@ const subPlanosPorPacote = Object.fromEntries(
               </div>
               <div className="pkg-divider"></div>
               <ul className="pkg-features">
-                 <li><div className="pkg-check"></div> REGIRTER YOUR BUSINESS</li>
-                 <li><div className="pkg-check"></div> OPPORTUNITIES OPEN A BANK ACCOUNT</li>
-                 <li><div className="pkg-check"></div> INCUBATE</li>
-                 <li><div className="pkg-check"></div> ACESS THE RIGHT PARTNER</li>
-                 <li><div className="pkg-check"></div>  LIVE AND WORK    </li>
+                 <li><div className="pkg-check"></div> Starter — 5.000 CVE: Registo do negócio e acesso à comunidade empresarial.</li>
+                 <li><div className="pkg-check"></div> Growth — 10.000 CVE: Abertura de conta bancária e incubação incluídas.</li>
+                 <li><div className="pkg-check"></div> Elite — 20.000 CVE: Acesso direto aos parceiros certos e mentoria dedicada.</li>
               </ul>
               <button className="btn-pkg btn-pkg-featured" onClick={() => abrirPopupPacote('business')}>Escolher</button>
             </div>
 
             <div className="pkg-card featured">
-              <div className="pkg-label"></div>
+              <div className="pkg-label">Estudar</div>
               <div className="pkg-name"> Student</div>
-              <p>VISIT, DISCOVER & EXPLORE</p>
+              <p>Para estudantes com ligação a Cabo Verde.</p>
               <div className="pkg-price">
                 <div className="pkg-price-prefixo">A partir de</div>
                 <div className="amount">{formatarAmount('student')}</div>
@@ -483,9 +482,9 @@ const subPlanosPorPacote = Object.fromEntries(
               </div>
               <div className="pkg-divider"></div>
               <ul className="pkg-features">
-                <li><div className="pkg-check"></div> INTERNSHIP</li>
-                <li><div className="pkg-check"></div> ACESS TO STARTUP PROGRAM</li>
-                <li><div className="pkg-check"></div> SMART CITY AKADEMY </li>
+                <li><div className="pkg-check"></div> Essencial — Grátis: Acesso à Smart City Akademy.</li>
+                <li><div className="pkg-check"></div> Ativo — 1.000 CVE: Inclui estágio (internship) e workshops.</li>
+                <li><div className="pkg-check"></div> Pro — 2.000 CVE: Acesso total ao startup program e mentoria de carreira.</li>
               </ul>
               <button className="btn-pkg btn-pkg-featured" onClick={() => abrirPopupPacote('student')}>Escolher</button>
             </div>
@@ -558,7 +557,15 @@ const subPlanosPorPacote = Object.fromEntries(
           </div>
         </div>
       )}
-       
+
+      {/* ==================== PAGAMENTO SEGURO (vinti4) ==================== */}
+      {(view === 'home' || view === 'pacote') && (
+        <div className="payment-trust-strip">
+          <p>Pagamento seguro através da rede vinti4</p>
+          <PaymentLogos />
+        </div>
+      )}
+
             {/* ==================== RECUPERAR SENHA ==================== */}
       {view === 'recuperar' && (
         <section className="form-section pt-20">
@@ -589,6 +596,8 @@ const subPlanosPorPacote = Object.fromEntries(
           </div>
         </section>
       )}
+
+      <Footer />
 
     </div>
   )
