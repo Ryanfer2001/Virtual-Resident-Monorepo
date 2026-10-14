@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Residente } from "@/types/residente";
-import { terminarSessao } from "@/lib/auth";
+import { terminarSessao, atualizarResidenteGuardado } from "@/lib/auth";
+import FotoPerfilMenu from "@/components/FotoPerfilMenu";
 
 interface HeaderProps {
   residente?: Residente | null;
@@ -13,16 +15,24 @@ interface HeaderProps {
 export default function Header({ residente }: HeaderProps) {
   const router = useRouter();
 
+  const [residenteLocal, setResidenteLocal] = useState(residente);
+  const [residenteAnterior, setResidenteAnterior] = useState(residente);
+
+  if (residente !== residenteAnterior) {
+    setResidenteAnterior(residente);
+    setResidenteLocal(residente);
+  }
+
   async function sair() {
     await terminarSessao();
     router.push("/");
     router.refresh();
   }
 
-  const fotoPerfil =
-    residente?.fotoPerfilBase64 ||
-    residente?.fotoPerfil ||
-    "/img/usercard.jpg";
+  function aoAtualizarFoto(residenteAtualizado: Residente) {
+    setResidenteLocal(residenteAtualizado);
+    atualizarResidenteGuardado(residenteAtualizado);
+  }
 
   return (
     <header className="site-header">
@@ -39,7 +49,7 @@ export default function Header({ residente }: HeaderProps) {
 
 
         <div className="nav-ctas">
-          {!residente ? (
+          {!residenteLocal ? (
             <>
               <Link href="/login" className="btn btn-primary">
                 Login
@@ -51,24 +61,26 @@ export default function Header({ residente }: HeaderProps) {
             </>
           ) : (
             <>
-              <button
-                type="button"
-                className="conta-residente"
-                onClick={() => router.push("/dashboard")}
-              >
-                <img
-                  src={fotoPerfil}
-                  alt={`Foto de ${residente.nome}`}
-                  className="header-foto-perfil"
+              <div className="conta-residente">
+                <FotoPerfilMenu
+                  residente={residenteLocal}
+                  onFotoAtualizada={aoAtualizarFoto}
                 />
 
-                <span>
-                  <small>Minha conta</small>
-                  <strong>
-                    {residente.nome?.split(" ")[0] || residente.username}
-                  </strong>
-                </span>
-              </button>
+                <button
+                  type="button"
+                  className="conta-residente-info"
+                  onClick={() => router.push("/dashboard")}
+                >
+                  <span>
+                    <small>Minha conta</small>
+                    <strong>
+                      {residenteLocal.nome?.split(" ")[0] ||
+                        residenteLocal.username}
+                    </strong>
+                  </span>
+                </button>
+              </div>
 
               <button type="button" className="btn btn-primary" onClick={sair}>
                 Sair

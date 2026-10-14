@@ -340,7 +340,11 @@ async function atualizarFotos(dados) {
 
   /*
    * Atualizar a fotografia de perfil (rosto).
-   * Sempre que é alterada, volta a ficar pendente de revisão.
+   * Ao contrário do BI e do cartão, esta fica aprovada de imediato —
+   * é só uma preferência visual do próprio residente, sem necessidade
+   * de revisão administrativa. Qualquer rejeição/revisão anterior é
+   * limpa, para não ficar um motivo de rejeição desatualizado associado
+   * a um estado "aprovada".
    */
   if (fotoPerfilBuffer) {
     campos.push("foto_perfil = ?");
@@ -349,7 +353,10 @@ async function atualizarFotos(dados) {
     campos.push("foto_perfil_tipo = ?");
     valores.push(fotoPerfilTipo || "image/jpeg");
 
-    campos.push("estado_foto_perfil = 'pendente'");
+    campos.push("estado_foto_perfil = 'aprovada'");
+    campos.push("motivo_rejeicao_foto_perfil = NULL");
+    campos.push("foto_perfil_revisado_em = NOW()");
+    campos.push("foto_perfil_revisado_por = NULL");
     dataFotosAtualizada = true;
   }
 
