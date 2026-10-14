@@ -53,7 +53,7 @@ function idDoToken(token: string): string | null {
  */
 async function residenteIdAutenticado(
   request: Request,
-): Promise<{ id: string } | { erro: NextResponse }> {
+): Promise<{ id: string; token: string } | { erro: NextResponse }> {
   const authorization = request.headers.get("authorization") || "";
   const [esquema, tokenRegisto] = authorization.split(" ");
 
@@ -61,7 +61,7 @@ async function residenteIdAutenticado(
     const id = idDoToken(tokenRegisto);
 
     if (id) {
-      return { id };
+      return { id, token: tokenRegisto };
     }
   }
 
@@ -100,7 +100,7 @@ async function residenteIdAutenticado(
     };
   }
 
-  return { id };
+  return { id, token: tokenSessao };
 }
 
 export async function POST(
@@ -121,6 +121,7 @@ export async function POST(
       baseUrl: NODE_RED_URL,
       caminho: "/api/residentes/fotos",
       body: { ...body, residenteId },
+      headers: { Authorization: `Bearer ${autenticacao.token}` },
       mensagemRespostaVazia:
         "O servidor devolveu uma resposta vazia.",
       mensagemRespostaInvalida:

@@ -4,6 +4,7 @@ interface OpcoesProxyNodeRed {
   baseUrl: string;
   caminho: string;
   body: unknown;
+  headers?: Record<string, string>;
   mensagemRespostaVazia: string;
   mensagemRespostaInvalida: string;
 }
@@ -27,6 +28,7 @@ export async function encaminharParaNodeRed<T>(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...opcoes.headers,
     },
     body: JSON.stringify(opcoes.body),
     cache: "no-store",

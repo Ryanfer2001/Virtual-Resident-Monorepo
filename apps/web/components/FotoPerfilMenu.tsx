@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Residente } from "@/types/residente";
 import { enviarFotosResidente } from "@/lib/api";
 import { comprimirImagemArquivo, capturarFrameCamera } from "@/lib/imagens";
@@ -197,53 +198,61 @@ export default function FotoPerfilMenu({
 
       {enviando && <div className="foto-perfil-erro">A atualizar foto…</div>}
 
-      {visualizarAberto && (
-        <div
-          className="popup-overlay"
-          onClick={() => setVisualizarAberto(false)}
-        >
+      {visualizarAberto &&
+        createPortal(
           <div
-            className="popup-box popup-box-foto"
-            onClick={(event) => event.stopPropagation()}
+            className="popup-overlay"
+            onClick={() => setVisualizarAberto(false)}
           >
-            <img src={fotoPerfil} alt={`Foto de ${residente.nome}`} />
-
-            <button
-              type="button"
-              className="popup-btn"
-              onClick={() => setVisualizarAberto(false)}
+            <div
+              className="popup-box popup-box-foto"
+              onClick={(event) => event.stopPropagation()}
             >
-              Fechar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {cameraAberta && (
-        <div className="popup-overlay">
-          <div className="camera-modal-conteudo">
-            <h3>Tirar foto de perfil</h3>
-
-            {erro && <div className="foto-perfil-erro">{erro}</div>}
-
-            <video ref={videoRef} autoPlay playsInline muted />
-
-            <div className="camera-modal-acoes">
-              <button type="button" className="popup-btn" onClick={capturarFoto}>
-                Capturar foto
-              </button>
+              <img src={fotoPerfil} alt={`Foto de ${residente.nome}`} />
 
               <button
                 type="button"
-                className="popup-btn-secundario"
-                onClick={fecharCamera}
+                className="popup-btn"
+                onClick={() => setVisualizarAberto(false)}
               >
-                Cancelar
+                Fechar
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
+
+      {cameraAberta &&
+        createPortal(
+          <div className="popup-overlay">
+            <div className="camera-modal-conteudo">
+              <h3>Tirar foto de perfil</h3>
+
+              {erro && <div className="foto-perfil-erro">{erro}</div>}
+
+              <video ref={videoRef} autoPlay playsInline muted />
+
+              <div className="camera-modal-acoes">
+                <button
+                  type="button"
+                  className="popup-btn"
+                  onClick={capturarFoto}
+                >
+                  Capturar foto
+                </button>
+
+                <button
+                  type="button"
+                  className="popup-btn-secundario"
+                  onClick={fecharCamera}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
