@@ -21,11 +21,13 @@ router.post(
 
 router.get(
   "/retorno",
+  pagamentoController.permitirScriptsPaginaRetorno,
   pagamentoController.processarRetorno
 );
 
 router.post(
   "/retorno",
+  pagamentoController.permitirScriptsPaginaRetorno,
   pagamentoController.processarRetorno
 );
 

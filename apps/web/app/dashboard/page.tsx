@@ -7,6 +7,8 @@ import { animate } from "animejs";
 import QRCode from "qrcode";
 
 import Header from "@/components/Header";
+import ConsentimentoPagamento from "@/components/ConsentimentoPagamento";
+import TermosModal from "@/components/TermosModal";
 
 import {
   atualizarResidenteGuardado,
@@ -58,6 +60,17 @@ export default function DashboardPage() {
 
   const [pedidoPacote, setPedidoPacote] =
     useState<string | null>(null);
+
+  /*
+   * Consentimento exigido pela SISP antes do envio para a Vinti4 — só
+   * estado de frontend. O checkbox não tem `name`, por isso nunca entra
+   * no FormData enviado para /api/pagamento/iniciar.
+   */
+  const [consentimentoRecarga, setConsentimentoRecarga] =
+    useState(false);
+
+  const [termosModalAberto, setTermosModalAberto] =
+    useState(false);
 
   // O gate do dashboard confirma sempre no servidor (cookie httpOnly)
   // que a sessão é válida — nunca confia só nos dados guardados em
@@ -247,6 +260,10 @@ export default function DashboardPage() {
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
+
+    if (!consentimentoRecarga) {
+      return;
+    }
 
     const formulario = event.currentTarget;
 
@@ -663,9 +680,18 @@ export default function DashboardPage() {
                   />
                 </div>
 
+                <ConsentimentoPagamento
+                  aceite={consentimentoRecarga}
+                  onAlterar={setConsentimentoRecarga}
+                  onAbrirTermos={() =>
+                    setTermosModalAberto(true)
+                  }
+                />
+
                 <button
                   type="submit"
                   className="recharge-btn"
+                  disabled={!consentimentoRecarga}
                 >
                   Continuar para pagamento →
                 </button>
@@ -681,6 +707,12 @@ export default function DashboardPage() {
         
         </div>
       </main>
+
+      {termosModalAberto && (
+        <TermosModal
+          onFechar={() => setTermosModalAberto(false)}
+        />
+      )}
     </div>
   );
 }

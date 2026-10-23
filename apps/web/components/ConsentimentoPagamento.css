@@ -1,0 +1,103 @@
+.consentimento-pagamento {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #d7e3ee;
+  border-radius: 14px;
+  background: #f8fbfe;
+  color: #334155;
+}
+
+.consentimento-pagamento-titulo {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.consentimento-pagamento .payment-logos {
+  gap: 10px;
+}
+
+.consentimento-pagamento .payment-logo-chip {
+  padding: 6px 10px;
+}
+
+.consentimento-pagamento-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.consentimento-pagamento-check input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #168bd2;
+}
+
+.consentimento-pagamento-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #0875c1;
+  font-weight: 700;
+  font-size: inherit;
+  font-family: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.consentimento-pagamento-link:hover {
+  color: #05517f;
+}
+
+.consentimento-pagamento-aviso {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #f5d38a;
+  border-radius: 10px;
+  background: #fff8e6;
+  color: #8a5a00;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .consentimento-pagamento {
+    padding: 14px;
+  }
+
+  .consentimento-pagamento .payment-logos {
+    gap: 8px;
+  }
+
+  .consentimento-pagamento .payment-logo-chip {
+    height: 48px;
+    padding: 4px 8px;
+  }
+
+  .consentimento-pagamento .payment-logo-img--vinti4 {
+    height: 38px;
+  }
+
+  .consentimento-pagamento .payment-logo-img--visa {
+    height: 40px;
+  }
+
+  .consentimento-pagamento .payment-logo-img--mastercard {
+    height: 26px;
+  }
+
+  .consentimento-pagamento .payment-logo-img--amex {
+    height: 38px;
+  }
+}

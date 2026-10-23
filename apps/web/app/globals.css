@@ -796,14 +796,29 @@ header {
 .payment-logo-chip {
   background: var(--white);
   border-radius: 10px;
-  padding: 8px 14px;
+  padding: 6px 12px;
+  height: 68px;
   box-shadow: var(--shadow-sm);
+}
+/* Mastercard ID Check oficial é a variante "rev" (texto branco). */
+.payment-logo-fundo-escuro,
+.payment-logo-chip.payment-logo-fundo-escuro {
+  background: #141414;
+  border-radius: 10px;
+  padding: 6px 12px;
 }
 .payment-logo-img {
   display: block;
   height: 40px;
   width: auto;
+  max-width: 100%;
+  object-fit: contain;
 }
+/* Alturas afinadas às margens internas de cada ficheiro oficial. */
+.payment-logo-img--vinti4 { height: 52px; }
+.payment-logo-img--visa { height: 56px; }
+.payment-logo-img--mastercard { height: 40px; }
+.payment-logo-img--amex { height: 54px; }
 
 /* ============ HERO JOURNEY STRIP ============ */
 .hero-journey {
@@ -1172,6 +1187,12 @@ input.field-invalid:focus, select.field-invalid:focus {
   box-shadow: 0 6px 16px rgba(0,195,227,0.30);
 }
 .recharge-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,195,227,0.40); }
+.recharge-form .consentimento-pagamento { margin-top: 14px; }
+button.recharge-btn:disabled,
+button.recharge-btn:disabled:hover {
+  cursor: not-allowed; opacity: 0.55;
+  transform: none; box-shadow: none;
+}
 
 /* ============ POPUP ============ */
 .popup-overlay {
@@ -1316,7 +1337,11 @@ footer p strong { color: rgba(255,255,255,0.60); font-weight: 500; }
   .journey::before { left: 22px; }
   .pull-quote { padding-left: 20px; }
   .payment-logos { gap: 14px; }
-  .payment-logo-img { height: 32px; }
+  .payment-logo-chip { height: 56px; }
+  .payment-logo-img--vinti4 { height: 42px; }
+  .payment-logo-img--visa { height: 46px; }
+  .payment-logo-img--mastercard { height: 32px; }
+  .payment-logo-img--amex { height: 44px; }
   .footer-grid { grid-template-columns: 1fr; gap: 28px; }
 }
 /* =====================================================

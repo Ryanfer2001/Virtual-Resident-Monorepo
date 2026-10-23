@@ -193,8 +193,8 @@ function cartaoRecibo(recibo) {
 
       <button
         type="button"
+        id="botaoImprimirRecibo"
         class="no-print"
-        onclick="window.print()"
         style="
           margin-top: 18px;
           width: 100%;
@@ -213,15 +213,85 @@ function cartaoRecibo(recibo) {
   `;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Scripts da página de retorno e CSP
+|--------------------------------------------------------------------------
+|
+| O helmet() global (app.js) aplica um CSP com script-src 'self' e
+| script-src-attr 'none': o browser bloqueava o antigo
+| onclick="window.print()" inline (e o <script> de redirecionamento), por
+| isso o botão "Imprimir / Guardar recibo" não fazia nada. Em vez de
+| enfraquecer o CSP com 'unsafe-inline', só estes dois scripts fixos são
+| autorizados, pelo hash SHA-256, e apenas na rota /retorno
+| (permitirScriptsPaginaRetorno). O texto entre <script> e </script> tem
+| de ser exatamente o devolvido por estas funções, senão o hash deixa de
+| corresponder.
+|--------------------------------------------------------------------------
+*/
+
+const SCRIPT_IMPRIMIR_RECIBO =
+  'document.getElementById("botaoImprimirRecibo").addEventListener("click",function(){window.print();});';
+
+function obterDashboardUrl() {
+  return (
+    process.env.FRONTEND_DASHBOARD_URL ||
+    "https://noszona-monorepo-web.vercel.app/dashboard"
+  );
+}
+
+function scriptRedirecionarDashboard(dashboardUrl) {
+  return `setTimeout(function(){window.location.href=${JSON.stringify(dashboardUrl)};},3000);`;
+}
+
+function hashScriptCsp(script) {
+  return `'sha256-${crypto
+    .createHash("sha256")
+    .update(script, "utf8")
+    .digest("base64")}'`;
+}
+
+function permitirScriptsPaginaRetorno(req, res, next) {
+  const politica = res.getHeader("Content-Security-Policy");
+
+  if (politica) {
+    const hashes = [
+      SCRIPT_IMPRIMIR_RECIBO,
+      scriptRedirecionarDashboard(obterDashboardUrl())
+    ]
+      .map(hashScriptCsp)
+      .join(" ");
+
+    res.setHeader(
+      "Content-Security-Policy",
+      String(politica)
+        .split(";")
+        .map((diretiva) => diretiva.trim())
+        .map((diretiva) =>
+          /^script-src(\s|$)/.test(diretiva)
+            ? `${diretiva} ${hashes}`
+            : diretiva
+        )
+        .join(";")
+    );
+  }
+
+  next();
+}
+
 function paginaRetornoPagamento({
   titulo,
   mensagem,
   sucesso,
   recibo
 }) {
-  const dashboardUrl =
-    process.env.FRONTEND_DASHBOARD_URL ||
-    "https://noszona-monorepo-web.vercel.app/dashboard";
+  const dashboardUrl = obterDashboardUrl();
+
+  /*
+   * Com recibo, a impressão mostra só o cartão do recibo — título,
+   * mensagem e botões ficam escondidos (@media print / .no-print).
+   */
+  const classeCabecalho = recibo ? ' class="no-print"' : "";
 
   return `
 <!DOCTYPE html>
@@ -238,8 +308,36 @@ function paginaRetornoPagamento({
 
   <style>
     @media print {
+      @page {
+        margin: 15mm;
+      }
+
+      html,
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      body {
+        display: block !important;
+        min-height: 0 !important;
+      }
+
       .no-print {
         display: none !important;
+      }
+
+      .cartao-retorno {
+        max-width: none !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+
+      #recibo {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+        border-top: none !important;
       }
     }
   </style>
@@ -258,6 +356,7 @@ function paginaRetornoPagamento({
   "
 >
   <div
+    class="cartao-retorno"
     style="
       background: white;
       color: #0f1f2e;
@@ -268,9 +367,9 @@ function paginaRetornoPagamento({
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     "
   >
-    <h1>${escaparHtml(titulo)}</h1>
+    <h1${classeCabecalho}>${escaparHtml(titulo)}</h1>
 
-    <p style="color: #607080;">
+    <p${classeCabecalho} style="color: #607080;">
       ${escaparHtml(mensagem)}
     </p>
 
@@ -296,15 +395,8 @@ function paginaRetornoPagamento({
 
   ${
     recibo
-      ? ""
-      : `<script>
-    setTimeout(
-      function () {
-        window.location.href = ${JSON.stringify(dashboardUrl)};
-      },
-      3000
-    );
-  </script>`
+      ? `<script>${SCRIPT_IMPRIMIR_RECIBO}</script>`
+      : `<script>${scriptRedirecionarDashboard(dashboardUrl)}</script>`
   }
 </body>
 </html>
@@ -1614,5 +1706,6 @@ module.exports = {
   iniciarPagamentoPacote,
   consultarEstadoTransacao,
   obterRecibo,
+  permitirScriptsPaginaRetorno,
   processarRetorno
 };

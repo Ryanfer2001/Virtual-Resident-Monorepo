@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const reciboPdfService = require("./reciboPdfService");
 
 /*
 |--------------------------------------------------------------------------
@@ -375,12 +376,36 @@ Em caso de dúvida, contacte o nosso serviço de apoio.
     </div>
   `;
 
+  /*
+   * recibo.pdf é gerado a partir do mesmo objeto `recibo` do HTML/texto
+   * acima. Se a geração falhar, o email continua a ser enviado sem o
+   * anexo — nunca bloqueia o envio nem toca no pagamento.
+   */
+  const anexos = [];
+
+  try {
+    anexos.push({
+      filename: "recibo.pdf",
+      content: reciboPdfService.gerarReciboPdf(recibo),
+      contentType: "application/pdf"
+    });
+  } catch (erroPdf) {
+    console.error(
+      "Erro ao gerar recibo.pdf (email enviado sem anexo):",
+      {
+        merchantRef: recibo.transacao?.merchantRef,
+        mensagem: erroPdf.message
+      }
+    );
+  }
+
   const resultado = await transporter.sendMail({
     from: `"NOSZONA Smart" <${process.env.SMTP_USER.trim()}>`,
     to: emailDestino,
     subject: assunto,
     text: texto,
-    html
+    html,
+    attachments: anexos
   });
 
   return resultado;
