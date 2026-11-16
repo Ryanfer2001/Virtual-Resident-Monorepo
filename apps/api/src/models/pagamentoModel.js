@@ -760,8 +760,61 @@ async function marcarReciboEmailEnviado(merchantRef) {
   return resultado;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Histórico de pagamentos concluídos de um residente (só leitura)
+|--------------------------------------------------------------------------
+|
+| residenteId vem sempre do JWT (req.utilizador.id), nunca do pedido.
+| Só pagamentos "concluido" — são os únicos com recibo. Colunas
+| explícitas: nunca devolve merchantSession, códigos de resposta SISP
+| ou qualquer outro campo interno. limite/offset são inteiros já
+| validados pelo controller e interpolados (mysql2 rejeita LIMIT ? em
+| prepared statements em várias versões do MySQL 8).
+|--------------------------------------------------------------------------
+*/
+
+async function listarConcluidosPorResidente(
+  residenteId,
+  { limite, offset }
+) {
+  const limiteSeguro = Math.max(1, Math.min(50, Math.trunc(Number(limite)) || 10));
+  const offsetSeguro = Math.max(0, Math.trunc(Number(offset)) || 0);
+
+  const [rows] = await pool.execute(
+    `SELECT
+      merchantRef,
+      tipo,
+      pacote,
+      valor,
+      estado,
+      criadoEm,
+      confirmadoEm
+    FROM pagamentos
+    WHERE residenteId = ?
+      AND estado = 'concluido'
+    ORDER BY COALESCE(confirmadoEm, criadoEm) DESC, id DESC
+    LIMIT ${limiteSeguro} OFFSET ${offsetSeguro}`,
+    [residenteId]
+  );
+
+  const [[contagem]] = await pool.execute(
+    `SELECT COUNT(*) AS total
+    FROM pagamentos
+    WHERE residenteId = ?
+      AND estado = 'concluido'`,
+    [residenteId]
+  );
+
+  return {
+    pagamentos: rows,
+    total: Number(contagem?.total || 0)
+  };
+}
+
 module.exports = {
   criarPagamentoPendente,
+  listarConcluidosPorResidente,
   procurarPorMerchantRef,
   marcarComoConcluido,
   marcarComoFalhado,

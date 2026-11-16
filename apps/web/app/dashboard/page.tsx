@@ -8,6 +8,7 @@ import QRCode from "qrcode";
 
 import Header from "@/components/Header";
 import ConsentimentoPagamento from "@/components/ConsentimentoPagamento";
+import HistoricoPagamentos from "@/components/HistoricoPagamentos";
 import TermosModal from "@/components/TermosModal";
 
 import {
@@ -704,7 +705,9 @@ export default function DashboardPage() {
             
           </article>
         </section>
-        
+
+        <HistoricoPagamentos />
+
         </div>
       </main>
 

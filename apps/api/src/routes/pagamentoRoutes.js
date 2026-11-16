@@ -42,4 +42,16 @@ router.get(
   pagamentoController.obterRecibo
 );
 
+router.get(
+  "/recibo/:merchantRef/pdf",
+  authMiddleware.autenticarToken,
+  pagamentoController.obterReciboPdf
+);
+
+router.get(
+  "/historico",
+  authMiddleware.autenticarToken,
+  pagamentoController.listarHistorico
+);
+
 module.exports = router;

@@ -5,6 +5,7 @@ const residenteModel = require("../models/residenteModel");
 const crypto = require("crypto");
 const emailService = require("../services/emailService");
 const reciboService = require("../services/reciboService");
+const reciboPdfService = require("../services/reciboPdfService");
 
 /*
 |--------------------------------------------------------------------------
@@ -868,7 +869,8 @@ async function iniciarPagamentoPacote(req, res) {
 | o recibo a partir de valores assumidos. O envio do email usa await
 | dentro de try/catch: uma falha é só registada (console.error), nunca
 | altera/reverte o pagamento, saldo ou pacote. reciboEmailEnviadoEm só é
-| escrito depois de sendMail terminar com sucesso.
+| escrito depois de sendMail terminar com sucesso e com recibo.pdf
+| anexado.
 |--------------------------------------------------------------------------
 */
 
@@ -890,15 +892,28 @@ async function construirReciboEEnviarEmail(merchantRef) {
 
   if (residente?.email) {
     try {
-      await emailService.enviarEmailRecibo({
+      const envio = await emailService.enviarEmailRecibo({
         destinatario: residente.email,
         nome: residente.nome,
         recibo
       });
 
-      await pagamentoModel.marcarReciboEmailEnviado(
-        merchantRef
-      );
+      /*
+       * reciboEmailEnviadoEm só regista a entrega do documento recibo
+       * (exigência SISP): um email que saiu sem recibo.pdf não conta
+       * como entregue — fica NULL e a falha fica nos logs. O recibo
+       * continua sempre disponível para download na conta do residente.
+       */
+      if (envio.pdfAnexado) {
+        await pagamentoModel.marcarReciboEmailEnviado(
+          merchantRef
+        );
+      } else {
+        console.error(
+          "Email do recibo enviado SEM recibo.pdf — entrega do documento NÃO concluída (pagamento já confirmado, não revertido):",
+          { merchantRef }
+        );
+      }
     } catch (erroEmail) {
       console.error(
         "Erro ao enviar email do recibo (pagamento já confirmado, não revertido):",
@@ -1625,65 +1640,71 @@ async function consultarEstadoTransacao(req, res) {
 |--------------------------------------------------------------------------
 */
 
-async function obterRecibo(req, res) {
-  try {
-    const residenteId = req.utilizador?.id;
+/*
+ * Validação comum aos dois endpoints de recibo (JSON e PDF): sessão,
+ * propriedade do pagamento e estado "concluido". Devolve { recibo } ou
+ * { status, mensagem } — nunca escreve na BD.
+ */
+async function carregarReciboDoResidente(req) {
+  const residenteId = req.utilizador?.id;
 
-    if (!residenteId) {
-      return res.status(401).json({
-        sucesso: false,
-        mensagem: "Sessão inválida."
-      });
-    }
+  if (!residenteId) {
+    return { status: 401, mensagem: "Sessão inválida." };
+  }
 
-    const merchantRef = String(
-      req.params?.merchantRef || ""
-    ).trim();
+  const merchantRef = String(
+    req.params?.merchantRef || ""
+  ).trim();
 
-    if (!merchantRef) {
-      return res.status(400).json({
-        sucesso: false,
-        mensagem: "merchantRef é obrigatório."
-      });
-    }
+  if (!merchantRef) {
+    return { status: 400, mensagem: "merchantRef é obrigatório." };
+  }
 
-    const pagamento =
-      await pagamentoModel.procurarPorMerchantRef(
-        merchantRef
-      );
+  const pagamento =
+    await pagamentoModel.procurarPorMerchantRef(
+      merchantRef
+    );
 
-    if (!pagamento) {
-      return res.status(404).json({
-        sucesso: false,
-        mensagem: "Pagamento não encontrado."
-      });
-    }
+  if (!pagamento) {
+    return { status: 404, mensagem: "Pagamento não encontrado." };
+  }
 
-    if (pagamento.residenteId !== residenteId) {
-      return res.status(403).json({
-        sucesso: false,
-        mensagem: "Não autorizado."
-      });
-    }
+  if (Number(pagamento.residenteId) !== Number(residenteId)) {
+    return { status: 403, mensagem: "Não autorizado." };
+  }
 
-    if (pagamento.estado !== "concluido") {
-      return res.status(409).json({
-        sucesso: false,
-        mensagem: "Este pagamento ainda não tem recibo disponível."
-      });
-    }
+  if (pagamento.estado !== "concluido") {
+    return {
+      status: 409,
+      mensagem: "Este pagamento ainda não tem recibo disponível."
+    };
+  }
 
-    const residente =
-      await residenteModel.procurarPorId(residenteId);
+  const residente =
+    await residenteModel.procurarPorId(residenteId);
 
-    const recibo = reciboService.construirRecibo({
+  return {
+    recibo: reciboService.construirRecibo({
       pagamento,
       residente
-    });
+    })
+  };
+}
+
+async function obterRecibo(req, res) {
+  try {
+    const resultado = await carregarReciboDoResidente(req);
+
+    if (!resultado.recibo) {
+      return res.status(resultado.status).json({
+        sucesso: false,
+        mensagem: resultado.mensagem
+      });
+    }
 
     return res.status(200).json({
       sucesso: true,
-      recibo
+      recibo: resultado.recibo
     });
   } catch (erro) {
     console.error(
@@ -1701,11 +1722,138 @@ async function obterRecibo(req, res) {
   }
 }
 
+/*
+|--------------------------------------------------------------------------
+| Descarregar recibo.pdf (área autenticada)
+|--------------------------------------------------------------------------
+|
+| Mesmas regras de obterRecibo. O PDF é gerado a pedido pelo mesmo
+| reciboPdfService do email — não é guardado na BD.
+|--------------------------------------------------------------------------
+*/
+
+async function obterReciboPdf(req, res) {
+  try {
+    const resultado = await carregarReciboDoResidente(req);
+
+    if (!resultado.recibo) {
+      return res.status(resultado.status).json({
+        sucesso: false,
+        mensagem: resultado.mensagem
+      });
+    }
+
+    const pdf = reciboPdfService.gerarReciboPdf(resultado.recibo);
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": 'attachment; filename="recibo.pdf"',
+      "Content-Length": String(pdf.length),
+      "Cache-Control": "private, no-store"
+    });
+
+    return res.status(200).send(pdf);
+  } catch (erro) {
+    console.error(
+      "Erro ao gerar recibo.pdf para download:",
+      {
+        merchantRef: req.params?.merchantRef || "",
+        mensagem: erro.message
+      }
+    );
+
+    return res.status(500).json({
+      sucesso: false,
+      mensagem: "Não foi possível gerar o recibo."
+    });
+  }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Histórico de pagamentos do residente autenticado
+|--------------------------------------------------------------------------
+|
+| Só pagamentos concluídos do próprio residente (req.utilizador.id do
+| JWT — nunca um residenteId vindo do pedido), paginado. Só campos de
+| exibição: sem merchantSession, códigos SISP, FingerPrint ou PAN.
+|--------------------------------------------------------------------------
+*/
+
+const HISTORICO_LIMITE_PADRAO = 10;
+const HISTORICO_LIMITE_MAXIMO = 50;
+
+async function listarHistorico(req, res) {
+  try {
+    const residenteId = req.utilizador?.id;
+
+    if (!residenteId) {
+      return res.status(401).json({
+        sucesso: false,
+        mensagem: "Sessão inválida."
+      });
+    }
+
+    const pagina = Math.max(
+      1,
+      Math.trunc(Number(req.query?.pagina)) || 1
+    );
+
+    const limite = Math.min(
+      HISTORICO_LIMITE_MAXIMO,
+      Math.max(
+        1,
+        Math.trunc(Number(req.query?.limite)) ||
+          HISTORICO_LIMITE_PADRAO
+      )
+    );
+
+    const { pagamentos, total } =
+      await pagamentoModel.listarConcluidosPorResidente(
+        residenteId,
+        { limite, offset: (pagina - 1) * limite }
+      );
+
+    return res.status(200).json({
+      sucesso: true,
+      pagina,
+      limite,
+      total,
+      totalPaginas: Math.max(1, Math.ceil(total / limite)),
+      pagamentos: pagamentos.map((pagamento) => ({
+        merchantRef: pagamento.merchantRef,
+        tipo: pagamento.tipo === "pacote" ? "pacote" : "recarga",
+        descricao:
+          pagamento.tipo === "pacote"
+            ? (pagamento.pacote || "Pacote")
+            : "Recarga de saldo",
+        valor: Number(pagamento.valor || 0),
+        moeda: "CVE",
+        estado: "Pago",
+        dataTransacao: pagamento.criadoEm,
+        dataConfirmacao: pagamento.confirmadoEm
+      }))
+    });
+  } catch (erro) {
+    console.error(
+      "Erro ao listar histórico de pagamentos:",
+      erro.message
+    );
+
+    return res.status(500).json({
+      sucesso: false,
+      mensagem: "Não foi possível obter o histórico de pagamentos."
+    });
+  }
+}
+
 module.exports = {
   iniciarPagamento,
   iniciarPagamentoPacote,
   consultarEstadoTransacao,
   obterRecibo,
+  obterReciboPdf,
+  listarHistorico,
   permitirScriptsPaginaRetorno,
   processarRetorno
 };

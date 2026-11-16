@@ -239,6 +239,42 @@ async function enviarEmailRecibo({
   const assunto =
     "Recibo de Pagamento - Cabo Verde Virtual Resident";
 
+  /*
+   * recibo.pdf é gerado a partir do mesmo objeto `recibo` do HTML/texto
+   * abaixo, e validado (Buffer não vazio a começar por "%PDF-") antes de
+   * ser anexado. Se a geração falhar, o email continua a ser enviado sem
+   * o anexo — nunca bloqueia o envio nem toca no pagamento — mas a falha
+   * fica registada e é devolvida em `pdfAnexado: false`, para quem chama
+   * nunca a tratar como entrega do PDF concluída.
+   */
+  let pdfRecibo = null;
+
+  try {
+    const pdf = reciboPdfService.gerarReciboPdf(recibo);
+
+    if (
+      !Buffer.isBuffer(pdf) ||
+      pdf.length === 0 ||
+      pdf.subarray(0, 5).toString("latin1") !== "%PDF-"
+    ) {
+      throw new Error("O gerador não devolveu um PDF válido.");
+    }
+
+    pdfRecibo = pdf;
+  } catch (erroPdf) {
+    console.error(
+      "RECIBO PDF NÃO GERADO — o email do recibo vai ser enviado SEM recibo.pdf:",
+      {
+        merchantRef: recibo.transacao?.merchantRef,
+        mensagem: erroPdf.message
+      }
+    );
+  }
+
+  const notaAnexo = pdfRecibo
+    ? "O recibo segue em anexo (recibo.pdf). Pode também descarregá-lo a qualquer momento na sua conta, em Histórico de Pagamentos."
+    : "Pode descarregar o recibo em PDF na sua conta, em Histórico de Pagamentos.";
+
   const dataTransacaoFormatada = recibo.transacao.dataTransacao
     ? new Date(recibo.transacao.dataTransacao).toLocaleString(
         "pt-PT",
@@ -285,6 +321,8 @@ ${recibo.comerciante.nome}
 ${recibo.comerciante.telefone ? `Tel: ${recibo.comerciante.telefone}\n` : ""}${recibo.comerciante.email ? `${recibo.comerciante.email}\n` : ""}${recibo.comerciante.url ? `${recibo.comerciante.url}\n` : ""}
 ${linhasResumo.map(([rotulo, valor]) => `${rotulo}: ${valor}`).join("\n")}
 ${linhasDcc.length ? "\n" + linhasDcc.map(([rotulo, valor]) => `${rotulo}: ${valor}`).join("\n") + "\n\n" + recibo.dcc.avisos.join("\n") : ""}
+
+${notaAnexo}
 
 Obrigado por utilizar o Cabo Verde Virtual Resident.
 Em caso de dúvida, contacte o nosso serviço de apoio.
@@ -357,6 +395,10 @@ Em caso de dúvida, contacte o nosso serviço de apoio.
 
         ${blocoDccHtml}
 
+        <p style="margin-top: 22px; font-size: 13px; color: #607080;">
+          ${escaparHtmlEmail(notaAnexo)}
+        </p>
+
         <hr
           style="
             border: none;
@@ -376,28 +418,15 @@ Em caso de dúvida, contacte o nosso serviço de apoio.
     </div>
   `;
 
-  /*
-   * recibo.pdf é gerado a partir do mesmo objeto `recibo` do HTML/texto
-   * acima. Se a geração falhar, o email continua a ser enviado sem o
-   * anexo — nunca bloqueia o envio nem toca no pagamento.
-   */
-  const anexos = [];
-
-  try {
-    anexos.push({
-      filename: "recibo.pdf",
-      content: reciboPdfService.gerarReciboPdf(recibo),
-      contentType: "application/pdf"
-    });
-  } catch (erroPdf) {
-    console.error(
-      "Erro ao gerar recibo.pdf (email enviado sem anexo):",
-      {
-        merchantRef: recibo.transacao?.merchantRef,
-        mensagem: erroPdf.message
-      }
-    );
-  }
+  const anexos = pdfRecibo
+    ? [
+        {
+          filename: "recibo.pdf",
+          content: pdfRecibo,
+          contentType: "application/pdf"
+        }
+      ]
+    : [];
 
   const resultado = await transporter.sendMail({
     from: `"NOSZONA Smart" <${process.env.SMTP_USER.trim()}>`,
@@ -408,7 +437,24 @@ Em caso de dúvida, contacte o nosso serviço de apoio.
     attachments: anexos
   });
 
-  return resultado;
+  /*
+   * Registo verificável da entrega (sem email nem dados do cliente):
+   * permite confirmar nos logs da Hostinger que o SMTP aceitou a
+   * mensagem e se levava o anexo.
+   */
+  console.log("Email do recibo aceite pelo SMTP:", {
+    merchantRef: recibo.transacao?.merchantRef,
+    messageId: resultado?.messageId,
+    aceites: resultado?.accepted?.length ?? null,
+    rejeitados: resultado?.rejected?.length ?? null,
+    pdfAnexado: Boolean(pdfRecibo),
+    pdfBytes: pdfRecibo ? pdfRecibo.length : 0
+  });
+
+  return {
+    ...resultado,
+    pdfAnexado: Boolean(pdfRecibo)
+  };
 }
 
 module.exports = {

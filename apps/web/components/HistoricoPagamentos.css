@@ -1,0 +1,211 @@
+.historico-pagamentos {
+  margin-top: 24px;
+}
+
+.historico-mensagem {
+  margin: 0 0 14px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.historico-erro {
+  padding: 10px 12px;
+  border: 1px solid #f5c2c7;
+  border-radius: 10px;
+  background: #fff1f2;
+  color: #b42335;
+}
+
+.historico-tabela-wrap {
+  overflow-x: auto;
+}
+
+.historico-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.historico-tabela th {
+  padding: 0 12px 12px;
+  border-bottom: 1px solid #e7edf2;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.historico-tabela td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #eef2f6;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.historico-tabela tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.historico-valor {
+  font-weight: 800;
+  color: #0b2c46;
+  white-space: nowrap;
+}
+
+.historico-ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.historico-acao {
+  text-align: right;
+}
+
+.historico-btn-recibo {
+  padding: 9px 16px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--cyan, #00c3e3), #0288d1);
+  color: var(--navy, #0b2c46);
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 195, 227, 0.25);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.historico-btn-recibo:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0, 195, 227, 0.35);
+}
+
+.historico-btn-recibo:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.historico-paginacao {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.historico-paginacao button {
+  padding: 8px 14px;
+  border: 1px solid rgba(8, 56, 91, 0.15);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0b2c46;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.historico-paginacao button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.historico-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Tema escuro do dashboard */
+.tema-escuro .historico-tabela th,
+.tema-escuro .historico-mensagem,
+.tema-escuro .historico-paginacao {
+  color: rgba(234, 242, 251, 0.6);
+}
+
+.tema-escuro .historico-tabela th,
+.tema-escuro .historico-tabela td {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.tema-escuro .historico-tabela td {
+  color: #eaf2fb;
+}
+
+.tema-escuro .historico-valor {
+  color: #f4f8fc;
+}
+
+.tema-escuro .historico-paginacao button {
+  background: rgba(15, 27, 51, 0.85);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #eaf2fb;
+}
+
+/* Telemóvel: cada pagamento passa a cartão, com o rótulo de cada campo */
+@media (max-width: 650px) {
+  .historico-tabela thead {
+    display: none;
+  }
+
+  .historico-tabela,
+  .historico-tabela tbody,
+  .historico-tabela tr,
+  .historico-tabela td {
+    display: block;
+    width: 100%;
+  }
+
+  .historico-tabela tr {
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border: 1px solid #e7edf2;
+    border-radius: 13px;
+  }
+
+  .tema-escuro .historico-tabela tr {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .historico-tabela td {
+    padding: 6px 0;
+    border-bottom: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: right;
+  }
+
+  .historico-tabela td[data-rotulo]::before {
+    content: attr(data-rotulo);
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .historico-acao {
+    padding-top: 10px !important;
+  }
+
+  .historico-btn-recibo {
+    width: 100%;
+  }
+
+  .historico-paginacao {
+    gap: 8px;
+  }
+
+  .historico-paginacao span,
+  .historico-paginacao button {
+    white-space: nowrap;
+  }
+}
