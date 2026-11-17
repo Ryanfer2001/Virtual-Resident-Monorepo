@@ -130,21 +130,62 @@ function paginaErroPagamento(mensagem) {
 |--------------------------------------------------------------------------
 */
 
-let logoReciboDataUri;
+const imagensDataUri = new Map();
 
-function obterLogoReciboDataUri() {
-  if (logoReciboDataUri === undefined) {
+/* Lê uma imagem de src/assets como data: URI (uma vez; "" se faltar) */
+function obterImagemDataUri(relativo, tipo) {
+  if (!imagensDataUri.has(relativo)) {
     try {
-      logoReciboDataUri = `data:image/png;base64,${fs
-        .readFileSync(path.join(__dirname, "..", "assets", "cvr-logo-recibo.png"))
-        .toString("base64")}`;
+      imagensDataUri.set(
+        relativo,
+        `data:${tipo};base64,${fs
+          .readFileSync(path.join(__dirname, "..", "assets", relativo))
+          .toString("base64")}`
+      );
     } catch (erro) {
-      console.error("Logótipo do recibo indisponível na página de retorno:", erro.message);
-      logoReciboDataUri = "";
+      console.error("Imagem do recibo indisponível na página de retorno:", relativo, erro.message);
+      imagensDataUri.set(relativo, "");
     }
   }
 
-  return logoReciboDataUri;
+  return imagensDataUri.get(relativo);
+}
+
+function obterLogoReciboDataUri() {
+  return obterImagemDataUri("cvr-logo-recibo.png", "image/png");
+}
+
+/*
+ * Marcas aceites — ficheiros oficiais do Pacote desenvolvimento_4.7 da
+ * SISP ("g. Logo das marcas aceites"), sem edição. O Mastercard ID Check
+ * é a variante "rev" (texto branco), por isso fica sobre fundo escuro.
+ */
+const LOGOS_PAGAMENTO_RECIBO = [
+  { nome: "American Express SafeKey", ficheiro: "pagamento/amex_SK_logo_full.png", tipo: "image/png", classe: "amex-sk" },
+  { nome: "Mastercard ID Check", ficheiro: "pagamento/mc_idcheck_hrz_rgb_rev.png", tipo: "image/png", classe: "mastercard", fundoEscuro: true },
+  { nome: "rede vinti4", ficheiro: "pagamento/vinti4.png", tipo: "image/png", classe: "vinti4" },
+  { nome: "Visa Secure", ficheiro: "pagamento/visa-secure_blu_2021_dkbg.png", tipo: "image/png", classe: "visa" },
+  { nome: "American Express", ficheiro: "pagamento/AXP_MagBlueBoxLogo.jpg", tipo: "image/jpeg", classe: "amex" }
+];
+
+function faixaLogosPagamento() {
+  const logos = LOGOS_PAGAMENTO_RECIBO
+    .map((logo) => ({ ...logo, src: obterImagemDataUri(logo.ficheiro, logo.tipo) }))
+    .filter((logo) => logo.src);
+
+  if (!logos.length) {
+    return "";
+  }
+
+  return `
+      <div class="recibo-pagamentos" aria-label="Meios de pagamento aceites">
+        ${logos
+          .map(
+            (logo) =>
+              `<span class="recibo-logo${logo.fundoEscuro ? " recibo-logo-escuro" : ""}"><img class="${logo.classe}" src="${logo.src}" alt="${escaparHtml(logo.nome)}"></span>`
+          )
+          .join('<span class="recibo-sep" aria-hidden="true"></span>')}
+      </div>`;
 }
 
 function formatarDataRecibo(data) {
@@ -188,10 +229,22 @@ const ESTILOS_RECIBO = `
     .recibo-rodape .nota { font-size: 11px; color: #8a9bb0; }
     .recibo-imprimir { display: block; margin: 18px auto 0; width: calc(100% - 44px); background: #eef2f7; color: #0f1f2e; border: 1px solid #d7dee8; padding: 11px 16px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
     .recibo-imprimir:hover { background: #e2e9f2; }
+    .recibo-pagamentos { border-top: 1px solid #d4dee9; padding: 14px 16px 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 14px; }
+    .recibo-logo { display: flex; align-items: center; }
+    .recibo-logo img { display: block; width: auto; max-width: 100%; }
+    .recibo-logo-escuro { background: #141414; border-radius: 6px; padding: 4px 8px; }
+    .recibo-pagamentos .amex-sk { height: 30px; }
+    .recibo-pagamentos .mastercard { height: 28px; }
+    .recibo-pagamentos .vinti4 { height: 42px; }
+    .recibo-pagamentos .visa { height: 46px; }
+    .recibo-pagamentos .amex { height: 46px; }
+    .recibo-sep { width: 1px; height: 30px; background: #d4dee9; }
     @media (max-width: 560px) {
       .recibo-partes { flex-direction: column; gap: 12px; }
       .recibo-titulo { text-align: left; }
       .recibo-total .valor { font-size: 20px; }
+      .recibo-sep { display: none; }
+      .recibo-pagamentos { gap: 10px 16px; }
     }
 `;
 
@@ -285,6 +338,7 @@ function cartaoRecibo(recibo) {
         <p>${contactosRodape}</p>
         <p class="nota">Documento emitido eletronicamente. Pagamento processado de forma segura pela rede vinti4.</p>
       </div>
+      ${faixaLogosPagamento()}
     </div>
 
     <button type="button" id="botaoImprimirRecibo" class="no-print recibo-imprimir">
