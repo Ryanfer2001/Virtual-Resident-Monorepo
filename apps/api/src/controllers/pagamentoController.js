@@ -3,6 +3,8 @@ const pagamentoModel = require("../models/pagamentoModel");
 const catalogoPacotes = require("../config/catalogoPacotes");
 const residenteModel = require("../models/residenteModel");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const emailService = require("../services/emailService");
 const reciboService = require("../services/reciboService");
 const reciboPdfService = require("../services/reciboPdfService");
@@ -116,101 +118,178 @@ function paginaErroPagamento(mensagem) {
 |--------------------------------------------------------------------------
 */
 
+/*
+|--------------------------------------------------------------------------
+| Recibo na página de retorno (mesmo design do recibo.pdf e do email)
+|--------------------------------------------------------------------------
+|
+| O CSP da API só aceita imagens 'self' ou data:, por isso o logótipo
+| (o mesmo ficheiro embebido no recibo.pdf) entra como data: URI — lido
+| uma vez e guardado em memória. Sem o ficheiro, o cabeçalho cai para
+| texto. Os estilos ficam em ESTILOS_RECIBO (style-src permite inline).
+|--------------------------------------------------------------------------
+*/
+
+let logoReciboDataUri;
+
+function obterLogoReciboDataUri() {
+  if (logoReciboDataUri === undefined) {
+    try {
+      logoReciboDataUri = `data:image/png;base64,${fs
+        .readFileSync(path.join(__dirname, "..", "assets", "cvr-logo-recibo.png"))
+        .toString("base64")}`;
+    } catch (erro) {
+      console.error("Logótipo do recibo indisponível na página de retorno:", erro.message);
+      logoReciboDataUri = "";
+    }
+  }
+
+  return logoReciboDataUri;
+}
+
+function formatarDataRecibo(data) {
+  return data
+    ? new Date(data).toLocaleString("pt-PT", { timeZone: "Atlantic/Cape_Verde" })
+    : "";
+}
+
+function formatarCVERecibo(valor) {
+  return `${Number(valor || 0).toLocaleString("pt-PT")} CVE`;
+}
+
+const ESTILOS_RECIBO = `
+    .recibo { margin-top: 28px; text-align: left; border: 1px solid #d4dee9; border-radius: 14px; overflow: hidden; color: #0f1f2e; }
+    .recibo-topo { background: #061827; border-bottom: 4px solid #00c3e3; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .recibo-topo img { display: block; width: 200px; max-width: 100%; height: auto; }
+    .recibo-marca { color: #ffffff; font-weight: bold; font-size: 16px; }
+    .recibo-titulo { text-align: right; }
+    .recibo-titulo strong { display: block; color: #ffffff; font-size: 17px; letter-spacing: 0.3px; }
+    .recibo-titulo span { color: #00c3e3; font-size: 13px; }
+    .recibo-corpo { padding: 22px; }
+    .recibo-partes { display: flex; gap: 20px; margin-bottom: 18px; }
+    .recibo-partes > div { flex: 1; min-width: 0; }
+    .recibo-rotulo { margin: 0 0 4px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; color: #5f7186; }
+    .recibo-nome { margin: 0 0 4px; font-size: 16px; font-weight: bold; color: #061827; overflow-wrap: anywhere; }
+    .recibo-contacto { margin: 2px 0; font-size: 13px; color: #5f7186; overflow-wrap: anywhere; }
+    .recibo-cartao { background: #f7fafc; border: 1px solid #d4dee9; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+    .recibo-cartao h3 { margin: 0 0 6px; padding-left: 10px; border-left: 3px solid #00c3e3; font-size: 14px; color: #061827; }
+    .recibo-cartao table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .recibo-cartao td { padding: 8px 0; border-bottom: 1px solid #d4dee9; vertical-align: top; }
+    .recibo-cartao tr:last-child td { border-bottom: none; }
+    .recibo-cartao td:first-child { color: #5f7186; width: 46%; padding-right: 12px; }
+    .recibo-cartao td:last-child { font-weight: bold; overflow-wrap: anywhere; }
+    .recibo-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #eaf6fb; border: 1px solid #b9e3f2; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+    .recibo-total p { margin: 0; }
+    .recibo-total .valor { font-size: 24px; font-weight: bold; color: #061827; }
+    .recibo-selo { background: #0ea472; color: #ffffff; font-weight: bold; font-size: 13px; padding: 6px 16px; border-radius: 999px; letter-spacing: 0.5px; }
+    .recibo-avisos { background: #f3f6f9; border-left: 3px solid #00c3e3; padding: 10px 14px; margin: 0 0 14px; font-size: 12px; line-height: 1.6; color: #5f7186; }
+    .recibo-rodape { border-top: 1px solid #d4dee9; padding: 14px 22px 18px; text-align: center; font-size: 12px; color: #5f7186; }
+    .recibo-rodape p { margin: 2px 0; overflow-wrap: anywhere; }
+    .recibo-rodape .nota { font-size: 11px; color: #8a9bb0; }
+    .recibo-imprimir { display: block; margin: 18px auto 0; width: calc(100% - 44px); background: #eef2f7; color: #0f1f2e; border: 1px solid #d7dee8; padding: 11px 16px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
+    .recibo-imprimir:hover { background: #e2e9f2; }
+    @media (max-width: 560px) {
+      .recibo-partes { flex-direction: column; gap: 12px; }
+      .recibo-titulo { text-align: left; }
+      .recibo-total .valor { font-size: 20px; }
+    }
+`;
+
 function cartaoRecibo(recibo) {
   if (!recibo) {
     return "";
   }
 
-  const dataTransacaoFormatada = recibo.transacao.dataTransacao
-    ? new Date(recibo.transacao.dataTransacao).toLocaleString(
-        "pt-PT",
-        { timeZone: "Atlantic/Cape_Verde" }
-      )
-    : "";
+  const { comerciante, cliente, transacao, dcc } = recibo;
+  const logo = obterLogoReciboDataUri();
 
-  const dataPrestacaoFormatada = recibo.transacao.dataPrestacaoServico
-    ? new Date(recibo.transacao.dataPrestacaoServico).toLocaleString(
-        "pt-PT",
-        { timeZone: "Atlantic/Cape_Verde" }
-      )
-    : "";
+  const linha = ([rotulo, valor]) =>
+    `<tr><td>${escaparHtml(rotulo)}</td><td>${escaparHtml(valor)}</td></tr>`;
 
-  const blocoDcc = recibo.dcc
+  const blocoDcc = dcc
     ? `
-      <table style="width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 10px;">
-        <tr>
-          <td style="padding: 4px 0; color: #607080;">Valor original</td>
-          <td style="padding: 4px 0; text-align: right;">${escaparHtml(String(recibo.dcc.valorOriginalCVE))} CVE</td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0; color: #607080;">Taxa de conversão / Currency Conversion Rate</td>
-          <td style="padding: 4px 0; text-align: right;">1 ${escaparHtml(recibo.dcc.dccCurrency)} = ${escaparHtml(recibo.dcc.dccRate)} CVE</td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0; color: #607080;">DCC Markup</td>
-          <td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.dcc.dccMarkup)} %</td>
-        </tr>
-        <tr>
-          <td style="padding: 4px 0; color: #607080;">Valor cobrado</td>
-          <td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.dcc.dccAmount)} ${escaparHtml(recibo.dcc.dccCurrency)}</td>
-        </tr>
-      </table>
-
-      <p style="font-size: 12px; color: #607080; margin-top: 10px;">
-        ${recibo.dcc.avisos.map(escaparHtml).join("<br>")}
-      </p>
-    `
+        <div class="recibo-cartao">
+          <h3>Dynamic Currency Conversion (DCC)</h3>
+          <table>
+            ${[
+              ["Valor original", formatarCVERecibo(dcc.valorOriginalCVE)],
+              ["Taxa de conversão / Currency Conversion Rate", `1 ${dcc.dccCurrency} = ${dcc.dccRate} CVE`],
+              ["DCC Markup", `${dcc.dccMarkup} %`],
+              ["Moeda / Currency", dcc.dccCurrency],
+              ["Valor cobrado / Amount charged", `${dcc.dccAmount} ${dcc.dccCurrency}`]
+            ].map(linha).join("")}
+          </table>
+        </div>
+        <p class="recibo-avisos">${dcc.avisos.map(escaparHtml).join("<br>")}</p>`
     : "";
+
+  const contactosRodape = [
+    comerciante.nome,
+    comerciante.telefone ? `Tel: ${comerciante.telefone}` : "",
+    comerciante.email,
+    comerciante.url
+  ].filter(Boolean).map(escaparHtml).join("&nbsp;&nbsp;|&nbsp;&nbsp;");
 
   return `
-    <div
-      id="recibo"
-      style="
-        margin-top: 24px;
-        text-align: left;
-        border-top: 1px solid #e5e7eb;
-        padding-top: 20px;
-      "
-    >
-      <h3 style="margin: 0 0 12px; color: #0f1f2e;">Recibo</h3>
+    <div id="recibo" class="recibo">
+      <div class="recibo-topo">
+        ${logo
+          ? `<img src="${logo}" alt="Cabo Verde Virtual Resident" width="200">`
+          : `<span class="recibo-marca">Cabo Verde Virtual Resident</span>`}
+        <div class="recibo-titulo">
+          <strong>RECIBO DE PAGAMENTO</strong>
+          <span>Referência ${escaparHtml(transacao.merchantRef)}</span>
+        </div>
+      </div>
 
-      <p style="margin: 2px 0;"><strong>${escaparHtml(recibo.comerciante.nome)}</strong></p>
-      ${recibo.comerciante.telefone ? `<p style="margin: 2px 0; font-size: 13px; color: #607080;">Tel: ${escaparHtml(recibo.comerciante.telefone)}</p>` : ""}
-      ${recibo.comerciante.email ? `<p style="margin: 2px 0; font-size: 13px; color: #607080;">${escaparHtml(recibo.comerciante.email)}</p>` : ""}
-      ${recibo.comerciante.url ? `<p style="margin: 2px 0 14px; font-size: 13px; color: #607080;">${escaparHtml(recibo.comerciante.url)}</p>` : ""}
+      <div class="recibo-corpo">
+        <div class="recibo-partes">
+          <div>
+            <p class="recibo-rotulo">Emitido por</p>
+            <p class="recibo-nome">${escaparHtml(comerciante.nome)}</p>
+            ${comerciante.telefone ? `<p class="recibo-contacto">Tel: ${escaparHtml(comerciante.telefone)}</p>` : ""}
+            ${comerciante.email ? `<p class="recibo-contacto">Email: ${escaparHtml(comerciante.email)}</p>` : ""}
+            ${comerciante.url ? `<p class="recibo-contacto">Loja: ${escaparHtml(comerciante.url)}</p>` : ""}
+          </div>
+          <div>
+            <p class="recibo-rotulo">Cliente</p>
+            <p class="recibo-nome">${escaparHtml(cliente.nome || "—")}</p>
+            ${cliente.email ? `<p class="recibo-contacto">Email: ${escaparHtml(cliente.email)}</p>` : ""}
+          </div>
+        </div>
 
-      <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
-        <tr><td style="padding: 4px 0; color: #607080;">Cliente</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.cliente.nome)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #607080;">Email</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.cliente.email)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #607080;">Serviço</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.transacao.descricao)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #607080;">Referência</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(recibo.transacao.merchantRef)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #607080;">Data da transação</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(dataTransacaoFormatada)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #607080;">Data de prestação do serviço</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(dataPrestacaoFormatada)}</td></tr>
-        <tr><td style="padding: 4px 0; color: #607080;">Valor</td><td style="padding: 4px 0; text-align: right;">${escaparHtml(String(recibo.transacao.valor))} CVE</td></tr>
-        <tr><td style="padding: 4px 0; color: #607080;">Estado</td><td style="padding: 4px 0; text-align: right;"><strong>${escaparHtml(recibo.transacao.estado)}</strong></td></tr>
-      </table>
+        <div class="recibo-cartao">
+          <h3>Detalhes da transação</h3>
+          <table>
+            ${[
+              ["Serviço", transacao.descricao],
+              ["Referência (merchantRef)", transacao.merchantRef],
+              ["Data da transação", formatarDataRecibo(transacao.dataTransacao)],
+              ["Data de prestação / ativação do serviço", formatarDataRecibo(transacao.dataPrestacaoServico)],
+              ["Estado", transacao.estado]
+            ].map(linha).join("")}
+          </table>
+        </div>
 
-      ${blocoDcc}
+        <div class="recibo-total">
+          <div>
+            <p class="recibo-rotulo">Valor total pago</p>
+            <p class="valor">${escaparHtml(formatarCVERecibo(transacao.valor))}</p>
+          </div>
+          <span class="recibo-selo">${escaparHtml(String(transacao.estado || "").toUpperCase())}</span>
+        </div>
+        ${blocoDcc}
+      </div>
 
-      <button
-        type="button"
-        id="botaoImprimirRecibo"
-        class="no-print"
-        style="
-          margin-top: 18px;
-          width: 100%;
-          background: #eef2f7;
-          color: #0f1f2e;
-          border: 1px solid #d7dee8;
-          padding: 10px 16px;
-          border-radius: 8px;
-          font-weight: bold;
-          cursor: pointer;
-        "
-      >
-        Imprimir / Guardar recibo
-      </button>
+      <div class="recibo-rodape">
+        <p>${contactosRodape}</p>
+        <p class="nota">Documento emitido eletronicamente. Pagamento processado de forma segura pela rede vinti4.</p>
+      </div>
     </div>
+
+    <button type="button" id="botaoImprimirRecibo" class="no-print recibo-imprimir">
+      Imprimir / Guardar recibo
+    </button>
   `;
 }
 
@@ -308,9 +387,16 @@ function paginaRetornoPagamento({
   <title>${escaparHtml(titulo)}</title>
 
   <style>
+    ${recibo ? ESTILOS_RECIBO : ""}
+
     @media print {
       @page {
-        margin: 15mm;
+        margin: 12mm;
+      }
+
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
 
       html,
@@ -330,6 +416,8 @@ function paginaRetornoPagamento({
 
       .cartao-retorno {
         max-width: none !important;
+        width: auto !important;
+        margin: 0 !important;
         padding: 0 !important;
         border-radius: 0 !important;
         box-shadow: none !important;
@@ -337,8 +425,7 @@ function paginaRetornoPagamento({
 
       #recibo {
         margin-top: 0 !important;
-        padding-top: 0 !important;
-        border-top: none !important;
+        break-inside: avoid;
       }
     }
   </style>
@@ -361,9 +448,12 @@ function paginaRetornoPagamento({
     style="
       background: white;
       color: #0f1f2e;
-      padding: 40px;
+      padding: ${recibo ? "32px 28px" : "40px"};
       border-radius: 20px;
-      max-width: 520px;
+      max-width: ${recibo ? "680px" : "520px"};
+      width: ${recibo ? "100%" : "auto"};
+      box-sizing: border-box;
+      margin: 16px;
       text-align: center;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     "
